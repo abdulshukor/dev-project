@@ -1,0 +1,16 @@
+[tools]
+pre-commit = "latest"
+python = "latest"
+uv = "latest"
+
+[settings]
+python.uv_venv_auto = true
+idiomatic_version_file_enable_tools = ["python"]
+experimental = true
+
+[env]
+APP_REPO = 'dev-project'
+GITOPS_REPO = 'study-app-gitops'
+
+[hooks]
+enter = "bash ./scripts/setup_project"
