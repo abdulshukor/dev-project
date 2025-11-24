@@ -1,0 +1,18 @@
+[project]
+name = "study-tracker-frontend"
+version = "0.0.0"
+description = "Frontend for DevOps Study Tracker application"
+readme = "README.md"
+authors = [{ name = "Abdul Shukor", email = "abdul@gmail.com" }]
+requires-python = ">=3.13"
+dependencies = ["flask>=3.1.2", "requests>=2.32.5"]
+
+[project.scripts]
+dev-project-frontend = "frontend.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/frontend"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
