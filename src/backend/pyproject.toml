@@ -8,7 +8,7 @@ requires-python = ">=3.14"
 dependencies = ["fastapi>=0.121.3", "httpx>=0.28.1", "uvicorn>=0.38.0"]
 
 [project.scripts]
-dev_project = "backend.main:main"
+dev-project-backend = "backend.main:main"
 
 #[tool.hatch.build.targets.wheel]
 #packages = ["src/backend"]
