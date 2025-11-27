@@ -5,7 +5,12 @@ description = "Demo Project"
 readme = "README.md"
 authors = [{ name = "Abdul Shukor", email = "ashukoor@gmail.com" }]
 requires-python = ">=3.13"
-dependencies = ["fastapi>=0.121.3", "httpx>=0.28.1", "uvicorn>=0.38.0"]
+dependencies = [
+    "fastapi>=0.121.3",
+    "httpx>=0.28.1",
+    "ruff>=0.14.6",
+    "uvicorn>=0.38.0",
+]
 
 [project.scripts]
 dev-project-backend = "backend.main:main"
