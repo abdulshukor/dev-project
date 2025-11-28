@@ -12,7 +12,7 @@ experimental = true
 
 [env]
 APP_REPO = 'dev-project'
-GITOPS_REPO = 'study-app-gitops'
+GITOPS_REPO = 'dev-project-gitops'
 
 [hooks]
 enter = "bash ./scripts/setup_project"
