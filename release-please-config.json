@@ -2,7 +2,7 @@
   "packages": {
     "src/backend": {
       "release-type": "python",
-      "package-name": "dev-project-backend",
+      "package-name": "backend",
       "component": "backend",
       "include-component-in-tag": true,
       "changelog-path": "CHANGELOG.md",
