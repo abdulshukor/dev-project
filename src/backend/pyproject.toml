@@ -1,5 +1,5 @@
 [project]
-name = "backend"
+name = "dev-project-backend"
 version = "0.0.0"
 description = "Demo Project"
 readme = "README.md"
