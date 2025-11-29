@@ -1,0 +1,19 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          # Will not trigger other workflows when using GITHUB_TOKEN
+          # token: ${{ secrets.GITHUB_TOKEN }}
+          token: "${{ secrets.DEVOPS_STUDY_APP_1 }}"
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
