@@ -12,24 +12,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="$(dirname "$SCRIPT_DIR")"
 CLUSTER_NAME="study-app-cluster"
 
-# pwd # to get absolute path 
-# Source=${BASH_SOURCE[0]}
-# Source1="$(dirname "${BASH_SOURCE[0]}")"
-
-# Echo
-# echo -e "SCRIPT_DIR.${YELLOW} = $SCRIPT_DIR"
-# echo -e "BASE_DIR.${YELLOW}  = $BASE_DIR"
-# echo -e "CLUSTER_NAME.${YELLOW} = $CLUSTER_NAME"
-# echo -e "Source.${YELLOW}=${Source}"
-# echo -e "Source1.${YELLOW}=${Source1}"
-
-# Output
-# SCRIPT_DIR. = /workspaces/dev-project/kubernetes
-# BASE_DIR.  = /workspaces/dev-project
-# Source.=./kubernetes/setup_cluster_local
-# Source1.=./kubernetes
-
-
 echo -e "${GREEN}DevOps Study App - Kubernetes Deployment Helper${NC}"
 echo -e "${YELLOW}This script will set up a k3d cluster and deploy the study app.${NC}"
 echo ""
@@ -132,8 +114,15 @@ get_service_url() {
 FRONTEND_URL=$(get_service_url "dev-frontend")
 BACKEND_URL=$(get_service_url "dev-backend")
 
-
-
+echo -e "\n${GREEN}Access your application via LoadBalancer external IPs:${NC}"
+if [ -n "$FRONTEND_URL" ] && [ -n "$BACKEND_URL" ]; then
+  echo -e "Frontend: ${YELLOW}$FRONTEND_URL${NC}"
+  echo -e "Backend API: ${YELLOW}$BACKEND_URL${NC}"
+  echo -e "Backend health check: ${YELLOW}$BACKEND_URL/health${NC}"
+else
+  echo -e "\n${RED}Could not determine service URLs. Please check the service status:${NC}"
+  echo -e "${YELLOW}kubectl get svc -n study-app${NC}"
+fi
 
 # Extract service ports for port-forwarding instructions
 FRONTEND_PORT=$(kubectl get svc dev-frontend -n study-app -o=jsonpath='{.spec.ports[0].port}' 2>/dev/null)

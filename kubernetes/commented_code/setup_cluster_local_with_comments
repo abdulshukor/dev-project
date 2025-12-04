@@ -214,3 +214,33 @@ echo -e "Backend health check: ${YELLOW}http://localhost:$BACKEND_PORT/health${N
 
 echo -e "\nTo delete the cluster when finished:"
 echo -e "${YELLOW}k3d cluster delete $CLUSTER_NAME${NC}"
+
+
+
+
+# -------------------------------------------------------------------
+# Commented out code snippets for reference
+# -------------------------------------------------------------------
+# Get absolute path of the script directory
+# SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# BASE_DIR="$(dirname "$SCRIPT_DIR")"
+# CLUSTER_NAME="study-app-cluster"
+# Source and Source1 examples
+# Source and Source1 demonstrate different ways to get script paths
+# Source is the relative path to the script
+# pwd # to get absolute path
+# Source=${BASH_SOURCE[0]}
+# Source1="$(dirname "${BASH_SOURCE[0]}")"
+
+# Echo
+# echo -e "SCRIPT_DIR.${YELLOW} = $SCRIPT_DIR"
+# echo -e "BASE_DIR.${YELLOW}  = $BASE_DIR"
+# echo -e "CLUSTER_NAME.${YELLOW} = $CLUSTER_NAME"
+# echo -e "Source.${YELLOW}=${Source}"
+# echo -e "Source1.${YELLOW}=${Source1}"
+
+# Output
+# SCRIPT_DIR. = /workspaces/dev-project/kubernetes
+# BASE_DIR.  = /workspaces/dev-project
+# Source.=./kubernetes/setup_cluster_local
+# Source1.=./kubernetes
