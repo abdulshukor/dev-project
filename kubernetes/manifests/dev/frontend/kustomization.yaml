@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+#Load whatever manifests live in ../../base/frontend
+resources:
+  - ../../base/frontend
+
+# Patch for the frontend deployment
+# Find the Kubernetes Deployment named frontend (in the study-app namespace), and apply the following patch to it.
+patches:
+  - target:
+      kind: Deployment
+      name: frontend
+      namespace: study-app
+#JSON patch to the Deployment. Replaced var by DEBUG and API_URL
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env
+        value:
+          - name: DEBUG
+            value: "true"
+          - name: API_URL
+            value: "http://dev-backend:22112"
