@@ -1,0 +1,216 @@
+#!/bin/bash
+# Use Bash as the shell to interpret this script.
+
+set -e
+# Exit immediately if any command returns a non-zero exit code.
+# This prevents continuing when something goes wrong.
+
+# Colors for better output (ANSI escape codes)
+GREEN='\033[0;32m'  # Green text
+RED='\033[0;31m'    # Red text
+YELLOW='\033[1;33m' # Bright yellow text
+NC='\033[0m'        # Reset to No Color
+
+# Script directory
+# BASH_SOURCE[0] is the path of the current script (can be relative).
+# dirname gets the directory portion; cd into it; pwd gives the absolute path.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# BASE_DIR is the parent directory of SCRIPT_DIR
+BASE_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Name of the k3d cluster we’re going to create/use
+CLUSTER_NAME="study-app-cluster"
+
+# -------------------------------------------------------------------
+# Intro / banner
+# -------------------------------------------------------------------
+
+echo -e "${GREEN}DevOps Study App - Kubernetes Deployment Helper${NC}"
+echo -e "${YELLOW}This script will set up a k3d cluster and deploy the study app.${NC}"
+echo ""
+
+# -------------------------------------------------------------------
+# Dependency check function
+# -------------------------------------------------------------------
+
+check_dependency() {
+  # $1 is the first argument to this function (e.g., "k3d", "kubectl", "docker")
+  # command -v <name> checks if the command is available in PATH
+  # &>/dev/null discards all output; we only care about the exit status
+  if ! command -v "$1" &>/dev/null; then
+    echo -e "${RED}Error: $1 is not installed. Please install it before proceeding.${NC}"
+    exit 1 # Exit the whole script with error code 1
+  fi
+}
+
+echo "Checking dependencies..."
+check_dependency k3d     # Ensure k3d is installed
+check_dependency kubectl # Ensure kubectl is installed
+check_dependency docker  # Ensure Docker is installed
+echo -e "${GREEN}All dependencies are installed.${NC}"
+echo ""
+
+# -------------------------------------------------------------------
+# Check if the cluster already exists
+# -------------------------------------------------------------------
+
+# k3d cluster list lists all clusters; grep -q searches quietly for the cluster name.
+if k3d cluster list | grep -q "$CLUSTER_NAME"; then
+  echo -e "${YELLOW}Cluster $CLUSTER_NAME already exists.${NC}"
+  # Ask user if they want to delete and recreate the cluster
+  read -p "Do you want to delete and recreate it? (y/n): " -r
+  # [[ ... ]] is Bash's test syntax; =~ is regex match.
+  # ^[Yy]$ means a single character Y or y.
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "Deleting existing cluster..."
+    k3d cluster delete "$CLUSTER_NAME"
+  else
+    echo "Using existing cluster."
+  fi
+fi
+
+# -------------------------------------------------------------------
+# Create cluster if it doesn't exist
+# -------------------------------------------------------------------
+
+# Check again (in case we just deleted it above).
+if ! k3d cluster list | grep -q "$CLUSTER_NAME"; then
+  echo "Creating k3d cluster using config file..."
+  # Create the cluster using the k3d config located next to this script
+  k3d cluster create --config "$SCRIPT_DIR/k3d-config.yaml"
+  echo -e "${GREEN}Cluster created successfully!${NC}"
+fi
+
+# -------------------------------------------------------------------
+# Configure kubectl context
+# -------------------------------------------------------------------
+
+echo "Configuring kubectl to use the cluster..."
+# k3d creates a kubectl context named k3d-<clustername>
+kubectl config use-context "k3d-$CLUSTER_NAME"
+
+# -------------------------------------------------------------------
+# Build Docker images (backend + frontend)
+# -------------------------------------------------------------------
+
+echo "Building Docker images..."
+
+echo "Building backend image..."
+# -t backend:dev -> tag image as backend:dev
+# -f PATH/TO/Dockerfile -> use that Dockerfile
+# build context is the backend source directory
+docker build -t backend:dev -f "$BASE_DIR/src/backend/Dockerfile" "$BASE_DIR/src/backend"
+
+echo "Building frontend image..."
+docker build -t frontend:dev -f "$BASE_DIR/src/frontend/Dockerfile" "$BASE_DIR/src/frontend"
+
+# -------------------------------------------------------------------
+# Import Docker images into k3d cluster
+# -------------------------------------------------------------------
+
+echo "Importing images into k3d..."
+# Make the locally built images available to the k3d cluster nodes
+k3d image import backend:dev -c "$CLUSTER_NAME"
+k3d image import frontend:dev -c "$CLUSTER_NAME"
+
+# -------------------------------------------------------------------
+# Deploy Kubernetes manifests with Kustomize
+# -------------------------------------------------------------------
+
+echo "Deploying application using kustomize..."
+# -k tells kubectl to use Kustomize (kustomization.yaml) in that directory
+kubectl apply -k "$SCRIPT_DIR/manifests/dev"
+
+# -------------------------------------------------------------------
+# Wait for pods to be ready
+# -------------------------------------------------------------------
+
+echo "Waiting for pods to be ready..."
+# Wait for all pods in the namespace 'study-app' to be in Ready condition
+# Timeout after 120 seconds; with set -e, failure stops the script
+kubectl wait --for=condition=Ready pods --all -n study-app --timeout=120s
+
+# -------------------------------------------------------------------
+# Show service information
+# -------------------------------------------------------------------
+
+echo -e "${GREEN}Application deployed successfully!${NC}"
+echo "Getting service information..."
+kubectl get services -n study-app
+
+# -------------------------------------------------------------------
+# Function: Wait for LoadBalancer IP & output a URL
+# -------------------------------------------------------------------
+
+get_service_url() {
+  local service_name=$1 # First argument: service name (e.g. dev-frontend)
+  local max_attempts=30 # Max number of polling attempts
+  local attempt=1
+
+  echo -e "Waiting for $service_name external IP..."
+
+  # Loop until we either find an IP or hit max_attempts
+  while [ $attempt -le $max_attempts ]; do
+    local ip
+    local port
+
+    # Get the LoadBalancer IP field from the service using JSONPath
+    ip=$(kubectl get svc "$service_name" -n study-app -o=jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+    # Get the first service port from spec.ports[0]
+    port=$(kubectl get svc "$service_name" -n study-app -o=jsonpath='{.spec.ports[0].port}' 2>/dev/null)
+
+    # If both ip and port are non-empty, we’ve got a URL
+    if [ -n "$ip" ] && [ -n "$port" ]; then
+      echo "http://$ip:$port"
+      return 0 # success
+    fi
+
+    # Otherwise, print a dot, wait, and try again
+    echo -n "."
+    sleep 2
+    ((attempt++)) # arithmetic expansion, increment attempt
+  done
+
+  # After max_attempts, give up
+  echo ""
+  echo -e "${RED}Could not get external IP for $service_name after $max_attempts attempts${NC}"
+  return 1 # failure
+}
+
+# -------------------------------------------------------------------
+# Get frontend & backend URLs from LoadBalancer services
+# -------------------------------------------------------------------
+
+FRONTEND_URL=$(get_service_url "dev-frontend")
+BACKEND_URL=$(get_service_url "dev-backend")
+# These variables now hold a URL like http://<ip>:<port> if successful.
+# They’re not printed yet, but you could echo them if desired.
+
+# -------------------------------------------------------------------
+# Get ports (for port-forward instructions)
+# -------------------------------------------------------------------
+
+# Extract service ports using JSONPath again. If command fails, stderr is hidden.
+FRONTEND_PORT=$(kubectl get svc dev-frontend -n study-app -o=jsonpath='{.spec.ports[0].port}' 2>/dev/null)
+BACKEND_PORT=$(kubectl get svc dev-backend -n study-app -o=jsonpath='{.spec.ports[0].port}' 2>/dev/null)
+
+# -------------------------------------------------------------------
+# Print port-forwarding instructions
+# -------------------------------------------------------------------
+
+echo -e "\n${GREEN}Alternative access via port-forwarding (for local development):${NC}"
+echo -e "To access via port-forwarding, run these commands in separate terminals:"
+echo -e "${YELLOW}kubectl port-forward svc/dev-frontend -n study-app $FRONTEND_PORT:$FRONTEND_PORT${NC}"
+echo -e "${YELLOW}kubectl port-forward svc/dev-backend -n study-app $BACKEND_PORT:$BACKEND_PORT${NC}"
+echo -e "Then access the application at:"
+echo -e "Frontend: ${YELLOW}http://localhost:$FRONTEND_PORT${NC}"
+echo -e "Backend API: ${YELLOW}http://localhost:$BACKEND_PORT${NC}"
+echo -e "Backend health check: ${YELLOW}http://localhost:$BACKEND_PORT/health${NC}"
+
+# -------------------------------------------------------------------
+# Cleanup hint
+# -------------------------------------------------------------------
+
+echo -e "\nTo delete the cluster when finished:"
+echo -e "${YELLOW}k3d cluster delete $CLUSTER_NAME${NC}"
