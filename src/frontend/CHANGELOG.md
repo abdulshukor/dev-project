@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/abdulshukor/dev-project/compare/frontend-v0.2.0...frontend-v0.3.0) (2025-12-05)
+
+
+### Features
+
+* **frontend-image:** frontend ([#20](https://github.com/abdulshukor/dev-project/issues/20)) ([c9541f9](https://github.com/abdulshukor/dev-project/commit/c9541f96f48b94d93f0fea35ad984a1d5edf1c63))
+* **frontend:** package ([#22](https://github.com/abdulshukor/dev-project/issues/22)) ([fb7ff2c](https://github.com/abdulshukor/dev-project/commit/fb7ff2c0e813f06050e6ceb549affa3895ccfac3))
+
 ## [0.2.0](https://github.com/abdulshukor/dev-project/compare/frontend-v0.1.0...frontend-v0.2.0) (2025-12-05)
 
 
