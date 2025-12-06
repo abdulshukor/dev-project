@@ -22,6 +22,7 @@ BASE_DIR="$(dirname "$SCRIPT_DIR")"
 # Name of the k3d cluster we’re going to create/use
 CLUSTER_NAME="study-app-cluster"
 
+
 # -------------------------------------------------------------------
 # Intro / banner
 # -------------------------------------------------------------------
@@ -242,3 +243,14 @@ echo -e "${YELLOW}k3d cluster delete $CLUSTER_NAME${NC}"
 # Source.=./kubernetes/setup_cluster_local
 # Source1.=./kubernetes
 
+# -------------------------------------------------------------------
+# Variable usage notes
+# -------------------------------------------------------------------
+# Most of the time you can use $test.
+# You use ${test} when you need braces to avoid confusion or to do something more advanced.
+# If you want to write variable + more characters (letters/numbers/underscore) → use ${var}.
+# If you’re ever unsure, ${var} is the “safe and explicit” version — it always works and avoids weird surprises.
+# Example:
+# NAME="world"
+# echo "Hello $NAMEs"      # tries to find variable $NAMEs (not defined)
+# echo "Hello ${NAME}s"    # correctly expands to "Hello worlds"  

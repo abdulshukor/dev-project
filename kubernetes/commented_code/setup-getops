@@ -1,0 +1,116 @@
+#!/bin/bash
+# Use the Bash shell to run this script.
+
+# Exit immediately if any command returns a non-zero (error) status.
+# This prevents the script from continuing if something fails.
+set -e
+
+# -------------------------------------------------------------------
+# 1. Check for required environment variables
+# -------------------------------------------------------------------
+
+# List of environment variable names that must be set.
+# These are needed to know:
+# - which workspace we're in,
+# - which GitHub user/org to use,
+# - which GitOps repository to target.
+required_vars=("DEVPOD_WORKSPACE_ID" "GITUSER" "GITOPS_REPO")
+
+# This array will hold the names of any variables that are missing.
+missing_vars=()
+
+# Loop over each required variable name.
+for var in "${required_vars[@]}"; do
+  # ${!var} is "indirect expansion":
+  # If var="GITUSER", then ${!var} is the same as $GITUSER.
+  #
+  # [ -z STRING ] is true if STRING is empty (zero length).
+  if [ -z "${!var}" ]; then
+    # If the variable isn't set or is empty, remember its name.
+    missing_vars+=("$var")
+  fi
+done
+
+# After the loop, check if we found any missing variables.
+# ${#missing_vars[@]} gives the number of elements in the array.
+if [ ${#missing_vars[@]} -ne 0 ]; then
+  echo "Error: The following required environment variables are not set:"
+  # Print each missing variable name as a bullet point.
+  for var in "${missing_vars[@]}"; do
+    echo "  - $var"
+  done
+  echo "Please set these variables before running this script."
+  # Exit with status 1 (error).
+  exit 1
+fi
+
+# -------------------------------------------------------------------
+# 2. Compute the directory where the deploy key should live
+# -------------------------------------------------------------------
+
+# KEY_DIR is where the SSH deploy key is expected to be stored.
+# It uses DEVPOD_WORKSPACE_ID to make the path specific to this workspace.
+KEY_DIR="/workspaces/$DEVPOD_WORKSPACE_ID/dev-keys"
+
+# -------------------------------------------------------------------
+# 3. Check if the deploy key file exists
+# -------------------------------------------------------------------
+
+# [ ! -f FILE ] is true if FILE does NOT exist as a regular file.
+if [ ! -f "$KEY_DIR/study_app_gitops_deploy_key" ]; then
+  echo "Error: Deploy key not found at $KEY_DIR/study_app_gitops_deploy_key"
+  # Exit with an error if the key is missing, because Flux needs it.
+  exit 1
+fi
+
+# -------------------------------------------------------------------
+# 4. Run Flux bootstrap using the GitOps repo and the SSH private key
+# -------------------------------------------------------------------
+
+# flux bootstrap git: instructs Flux to connect to a Git repository
+# and set up GitOps based on the manifests in that repo.
+flux bootstrap git
+# --url: SSH URL to the Git repo (uses GITUSER and GITOPS_REPO).
+--url=ssh://git@github.com/"$GITUSER"/"$GITOPS_REPO"
+# --branch: which branch Flux should use.
+--branch=main
+# --private-key-file: path to the SSH private key used to access the repo.
+--private-key-file="$KEY_DIR"/study_app_gitops_deploy_key
+# --path: where in the repo the cluster configuration lives (e.g. clusters/dev).
+--path=clusters/dev
+
+
+# -------------------------------------------------------------------
+# Bash Test Operators Reference
+# -------------------------------------------------------------------
+# Here are some common Bash test operators you can use in conditional statements.
+
+# Operator	Meaning	Example
+# -z STRING	True if STRING is empty	[ -z "$name" ]
+# -n STRING	True if STRING is not empty	[ -n "$name" ]
+# -f FILE	True if FILE exists and is a regular file	[ -f "/path/to/file" ]
+# -d DIRECTORY	True if DIRECTORY exists and is a directory	[ -d "/path/to/directory" ]
+# -eq	equal	[ "$a" -eq "$b" ]
+# -ne	not equal	[ "$a" -ne "$b" ]
+# -lt	less than	[ "$a" -lt "$b" ]
+# -le	less than or equal	[ "$a" -le "$b" ]
+# -gt	greater than	[ "$a" -gt "$b" ]
+# -ge	greater than or equal	[ "$a" -ge "$b" ]
+# -e FILE	FILE exists	[ -e "config.yaml" ]
+# -f FILE	FILE exists and is a regular file	[ -f "file.txt" ]
+# -d FILE	FILE exists and is a directory	[ -d "logs" ]
+# !	negation	[ ! -f "file.txt" ]
+# -x FILE	FILE is executable	[ -x "script.sh" ]
+# -------------------------------------------------------------------
+# Bash Variable Expansion Reference
+# -------------------------------------------------------------------
+# Here are some common Bash variable expansion techniques.
+#${var} → value of the variable named var.
+#${!var} → value of the variable whose name is stored in var
+#${#var} → length of the value of var (number of characters).
+# ${!var} is not negation.
+# Here, ! means indirect expansion (a fancy way of saying “use the value of the variable whose name is in var”).
+# For example:
+# var="GITUSER"
+# GITUSER="alice"
+# echo "${!var}"  # This will print "alice" because ${!var} expands to $GITUSER.

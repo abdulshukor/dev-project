@@ -1,0 +1,142 @@
+#!/bin/bash
+# Use the Bash shell to run this script.
+
+# Exit immediately if any command exits with a non-zero status.
+# This prevents the script from continuing in an inconsistent state.
+set -e
+
+# -----------------------------
+# 1. Check required environment variables
+# -----------------------------
+
+# List of environment variable names that must be set
+required_vars=("DEVPOD_WORKSPACE_ID" "GITUSER" "GITOPS_REPO")
+
+# Array to collect any that are missing
+missing_vars=()
+
+# Loop over each required variable name
+for var in "${required_vars[@]}"; do
+  # ${!var} is "indirect expansion":
+  # If var="GITUSER", then ${!var} means $GITUSER (its value).
+  # -z checks if the expanded value is empty.
+  if [ -z "${!var}" ]; then
+    # If not set or empty, add the variable name to missing_vars array
+    missing_vars+=("$var")
+  fi
+done
+
+# If the number of missing variables is not zero, show an error and exit
+if [ ${#missing_vars[@]} -ne 0 ]; then
+  echo "Error: The following required environment variables are not set:"
+  # Print each missing var name in a nice list
+  for var in "${missing_vars[@]}"; do
+    echo "  - $var"
+  done
+  echo "Please set these variables before running this script."
+  exit 1
+fi
+
+# -----------------------------
+# 2. Define paths and metadata
+# -----------------------------
+
+# Directory to store SSH keys, based on the DevPod workspace ID
+KEY_DIR="/workspaces/$DEVPOD_WORKSPACE_ID/dev-keys"
+
+# Name of the key file (without .pub)
+KEY_NAME="study_app_gitops_deploy_key"
+
+# Full path (directory + key name)
+KEY_PATH="$KEY_DIR/$KEY_NAME"
+
+# GitHub repo in "owner/repo" format, derived from env vars
+REPO="$GITUSER/$GITOPS_REPO"
+
+# Title that will appear in GitHub for this deploy key
+# Includes the hostname so you can see which machine added it
+KEY_TITLE="Study App GitOps Deploy Key ($(hostname))"
+
+# Comment embedded into the SSH key itself (useful for identifying the key)
+KEY_COMMENT="deploy-key@study-app-gitops"
+
+# -----------------------------
+# 3. Ensure GitHub CLI (gh) is installed & authenticated
+# -----------------------------
+
+# command -v gh checks if "gh" is available in PATH; &>/dev/null hides all output.
+if ! command -v gh &>/dev/null; then
+  echo "Error: GitHub CLI (gh) is not installed or not in PATH."
+  exit 1
+fi
+
+# Check if gh is authenticated with GitHub
+# gh auth status returns non-zero if not logged in; &>/dev/null hides output again.
+if ! gh auth status &>/dev/null; then
+  echo "Error: GitHub CLI is not authenticated."
+  echo "Please run 'gh auth login' to authenticate."
+  exit 1
+fi
+
+# -----------------------------
+# 4. Create directory for SSH keys
+# -----------------------------
+
+echo "Creating directory $KEY_DIR..."
+# mkdir -p creates the directory and parents if needed, and does nothing if it already exists.
+mkdir -p "$KEY_DIR"
+echo "Directory created."
+echo
+
+# -----------------------------
+# 5. Generate SSH key pair (if not already present)
+# -----------------------------
+
+echo "Generating SSH key pair in $KEY_PATH..."
+
+# Check if either the private key or public key already exists
+# to avoid overwriting keys unintentionally.
+if [ -f "$KEY_PATH" ] || [ -f "$KEY_PATH.pub" ]; then
+  echo "SSH key files already exist at $KEY_PATH(.pub). Skipping generation."
+  echo "If you want to regenerate, please remove the existing files first."
+else
+  # ssh-keygen options:
+  # -t ed25519 : key type = ed25519 (modern, recommended)
+  # -f KEY_PATH: output file (private key at KEY_PATH, public at KEY_PATH.pub)
+  # -N ""      : empty passphrase (non-interactive, no password)
+  # -C COMMENT : comment stored in the key, useful for identifying it
+  ssh-keygen -t ed25519 -f "$KEY_PATH" -N "" -C "$KEY_COMMENT"
+  echo "SSH key pair generated."
+fi
+echo
+
+# -----------------------------
+# 6. Add public key as GitHub deploy key
+# -----------------------------
+
+echo "Adding public key $KEY_PATH.pub to repository $REPO..."
+echo "You might be prompted to authenticate with GitHub."
+
+# gh repo deploy-key add:
+# - first argument: path to public key file
+# --title: the name shown in GitHub UI for this deploy key
+# --repo: which repo to attach the key to (owner/repo)
+# --allow-write: grants write (push) access instead of read-only.
+#   Remove this flag if you only want read access (e.g., pull-only).
+gh repo deploy-key add "$KEY_PATH.pub" --title "$KEY_TITLE" --repo "$REPO" --allow-write
+
+# -----------------------------
+# 7. Final summary / instructions
+# -----------------------------
+
+echo
+echo "---"
+echo "Script finished successfully!"
+echo "Deploy key '$KEY_TITLE' added to $REPO."
+echo "The private key is located at: $KEY_PATH"
+echo "The public key is located at: $KEY_PATH.pub"
+echo "Remember to configure your deployment system to use the private key ($KEY_PATH)."
+echo "---"
+
+# Explicit success exit (0 = OK)
+exit 0
