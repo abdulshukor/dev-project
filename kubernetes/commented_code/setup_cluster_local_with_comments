@@ -254,3 +254,23 @@ echo -e "${YELLOW}k3d cluster delete $CLUSTER_NAME${NC}"
 # NAME="world"
 # echo "Hello $NAMEs"      # tries to find variable $NAMEs (not defined)
 # echo "Hello ${NAME}s"    # correctly expands to "Hello worlds"  
+
+
+# need space after [ and before ]
+# while [ $count -le 5 ]; do
+#   echo "Count is $count"
+#   ((count++))
+# done
+# This prints numbers 1 to 5.
+
+#   read -p "Do you want to delete and recreate it? (y/n): " -r
+# The -r prevents backslash escapes from being interpreted (y/n).
+#   if [[ $REPLY =~ ^[Yy]$ ]]; then
+# The double brackets [[ ... ]] is a more powerful test command in Bash.
+# The =~ operator allows regex matching.
+# ^[Yy]$ means the input is exactly one character: either Y or y
+# return vs exit
+# return exits from a function, while exit exits the entire script. 
+
+
+

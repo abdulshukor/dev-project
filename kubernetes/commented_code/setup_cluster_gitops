@@ -54,6 +54,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # BASE_DIR = path to the project root under /workspaces
 # Example: /workspaces/dev-project
+# $DEVPOD_WORKSPACE_ID is the unique ID for the DevPod workspace vs $DEVPOD which is the name of the folder
+# Example: /workspaces/<workspace_id>
+# This is where the scripts/ folder lives
+# When to $DEVPOD alone, it gives just the folder name 
+# When to $DEVPOD_WORKSPACE_ID, it gives the unique workspace ID
+# Example: /workspaces/<workspace_id>
+
+
 BASE_DIR="/workspaces/$DEVPOD"
 
 # Name of the k3d cluster to create/use

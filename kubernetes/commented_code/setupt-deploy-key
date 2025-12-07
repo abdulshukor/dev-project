@@ -23,6 +23,10 @@ for var in "${required_vars[@]}"; do
   if [ -z "${!var}" ]; then
     # If not set or empty, add the variable name to missing_vars array
     missing_vars+=("$var")
+    # -z test returns true if the string is null (empty)
+    # So we add the var name to missing_vars
+    # This way we can report all missing vars at once
+    # -z means expand to empty string is true
   fi
 done
 
