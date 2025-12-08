@@ -272,5 +272,7 @@ echo -e "${YELLOW}k3d cluster delete $CLUSTER_NAME${NC}"
 # return vs exit
 # return exits from a function, while exit exits the entire script. 
 
+# -n STRING → true if STRING is non-empty
+# -z STRING → true if STRING is empty
 
 

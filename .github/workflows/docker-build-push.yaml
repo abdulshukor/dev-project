@@ -14,6 +14,9 @@ jobs:
     name: Build and Push Backend
     runs-on: ubuntu-latest
     # Only run for backend tags
+    # github.ref for tags is refs/tags/<tag_name>
+    # so we check if 'backend' is in the ref string
+    # to determine if it's a backend tag
     if: contains(github.ref, 'backend')
     permissions:
       contents: read
@@ -43,6 +46,8 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:latest
+            # You can add more tags if needed
+            
     outputs:
       tag: ${{ steps.tag.outputs.TAG }}
       app: backend
