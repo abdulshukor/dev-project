@@ -16,7 +16,7 @@ on:
       GITOPS_DEPLOY_KEY:
         required: true
         description: "Deploy key for GitOps repository"
-      DEVOPS_STUDY_APP:
+      DEVOPS_STUDY_APP_1:
         required: true
         description: "PAT GitOps repository"
 
@@ -42,8 +42,8 @@ jobs:
 
       - name: Update Image Tags Dev
         run: |
-          # Define the target kustomization file. For dev environment cimmiting direclty. 
-          KUSTOMIZATION_FILE="./devops-study-app-gitops/apps/dev/kustomization.yaml"
+          # Define the target kustomization file. For dev environment committing directly. 
+          KUSTOMIZATION_FILE="./study-app-gitops/apps/dev/kustomization.yaml"
           SCRIPT_PATH="./actions-repo/scripts/update_kustomize_tag"
 
           # Call the script with the input tag, kustomization file path, and image name
@@ -54,7 +54,7 @@ jobs:
         with:
           author_name: GitOps Bot
           author_email: mail@example.com
-          cwd: ./devops-study-app-gitops
+          cwd: ./study-app-gitops
           message: Update ${{ inputs.image }} deployment with tag "${{ inputs.tag }}"
 
       - name: Update Image Tags Prod
@@ -71,7 +71,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.DEVOPS_STUDY_APP_1 }} # Requires a PAT with repo scope for study-app-gitops. Does not work with deply key.
-          path: ./devops-study-app-gitops
+          path: ./study-app-gitops
           commit-message: Update dev deployments to tag ${{ inputs.tag }}
           committer: GitOps Bot <gitops-bot@github.com>
           author: GitOps Bot <gitops-bot@github.com>
