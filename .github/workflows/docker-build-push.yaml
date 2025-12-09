@@ -110,7 +110,7 @@ jobs:
     needs: [build-and-push-backend, build-and-push-frontend]
     # Run if either build job succeeded (the other one will be skipped based on the tag)
     if: always() && (needs.build-and-push-backend.result == 'success' || needs.build-and-push-frontend.result == 'success')
-    uses: ./.github/workflows/update-gitops.yml
+    uses: ./.github/workflows/update-gitops.yaml
     # passing with
     with:
       tag: ${{ needs.build-and-push-backend.outputs.tags || needs.build-and-push-frontend.outputs.tags }}
