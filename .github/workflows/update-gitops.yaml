@@ -2,7 +2,7 @@ name: Update GitOps Repository
 
 on:
   workflow_call:
-    inputs:
+    inputs: # expected inputs to the workflow of tag and image name. 
       tag:
         required: true
         type: string
@@ -24,7 +24,7 @@ jobs:
   update-gitops:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # we need write permission to create PRs to repository or writing to repository.
 
     steps:
       - name: Checkout Actions Repo
@@ -40,7 +40,8 @@ jobs:
           path: study-app-gitops
           ssh-key: ${{ secrets.GITOPS_DEPLOY_KEY }}
 
-      - name: Update Image Tags Dev
+      - name: Update Image Tags Dev 
+      # Comitting directly to dev environment.
         run: |
           # Define the target kustomization file. For dev environment committing directly. 
           KUSTOMIZATION_FILE="./study-app-gitops/apps/dev/kustomization.yaml"
@@ -55,17 +56,21 @@ jobs:
           author_name: GitOps Bot
           author_email: mail@example.com
           cwd: ./study-app-gitops
+          # cwd is current working directory where the git operations will be performed.
           message: Update ${{ inputs.image }} deployment with tag "${{ inputs.tag }}"
 
       - name: Update Image Tags Prod
+      # Creating PR for prod environment.
         run: |
           # Define the target kustomization file. We are creating pull request. 
           KUSTOMIZATION_FILE="./devops-study-app-gitops/apps/prod/kustomization.yaml"
           SCRIPT_PATH="./actions-repo/scripts/update_kustomize_tag"
 
           # Call the script with the input tag, kustomization file path, and image name
+          # Explanation log for debugging.
           echo "Calling update script with tag: ${{ inputs.tag }}, file: $KUSTOMIZATION_FILE, image: ${{ inputs.image }}"
           "$SCRIPT_PATH" "${{ inputs.tag }}" "$KUSTOMIZATION_FILE" "${{ inputs.image }}"
+          
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6

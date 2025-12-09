@@ -1,0 +1,29 @@
+# This is one step inside a GitHub Actions job.
+- name: Update Image Tags Dev # Step name shown in the Actions UI
+  # Comment (for humans): we are committing directly to the dev environment kustomization.
+  # Comitting directly to dev environment.
+  run: | # Use a multi-line shell script
+    # Define the target kustomization file for the *dev* environment.
+    # This file lives inside the GitOps repo that was checked out earlier into ./study-app-gitops
+    KUSTOMIZATION_FILE="./study-app-gitops/apps/dev/kustomization.yaml"
+
+    # Path to the helper script that actually updates the image tag in the kustomization file.
+    # This script lives in the "actions" repo, checked out into ./actions-repo
+    SCRIPT_PATH="./actions-repo/scripts/update_kustomize_tag"
+
+    # Print a message so we can see what values are being used in the logs:
+    # - inputs.tag  → the tag (e.g. v1.2.3)
+    # - KUSTOMIZATION_FILE → the file we're modifying
+    # - inputs.image → which image (e.g. backend, frontend)
+    echo "Calling update script with tag: ${{ inputs.tag }}, file: $KUSTOMIZATION_FILE, image: ${{ inputs.image }}"
+
+    # Call the update script:
+    #   1st argument: the tag       (from the workflow input)
+    #   2nd argument: file path     (dev kustomization file)
+    #   3rd argument: image name    (from the workflow input)
+    #
+    # Inside the script, these are used as:
+    #   INPUT_TAG=$1
+    #   KUSTOMIZATION_FILE=$2
+    #   IMAGE_NAME=$3
+    "$SCRIPT_PATH" "${{ inputs.tag }}" "$KUSTOMIZATION_FILE" "${{ inputs.image }}"

@@ -1,0 +1,118 @@
+#!/bin/bash
+# Tell the system to run this script with the Bash shell.
+
+# Exit immediately if any command returns a non-zero (error) status.
+# This prevents the script from continuing when something goes wrong.
+set -e
+
+# ---------------------------------------------------------
+# 1. Check that we got exactly 3 arguments
+# ---------------------------------------------------------
+
+# "$#" = number of arguments passed to the script.
+# We expect:
+#   $1 = input tag
+#   $2 = kustomization file path
+#   $3 = image name
+if [ "$#" -ne 3 ]; then
+  # $0 is the script name; show the correct usage.
+  # <input-tag> <kustomization-file-path> <image-name> are placeholders for the arguments. 
+  # They represent the new image tag, the path to the kustomization.yaml file, and the image name to update, respectively.
+  # <> indicates required arguments. 
+  # <input-tag> could be something like "v1.2.3".
+  # <kustomization-file-path> could be "path/to/kustomization.yaml".
+  # <image-name> could be something like "my-app-image".
+  # Providing these arguments correctly is essential for the script to function.
+  # If the user does not provide exactly 3 arguments, we print the usage message and exit with an error code.
+  # $0 is a special variable that holds the name of the script being executed.
+  echo "Usage: $0 <input-tag> <kustomization-file-path> <image-name>"
+  exit 1   # Exit with error code 1.
+fi
+
+# Save positional arguments into nicely named variables.
+INPUT_TAG=$1            # new tag to set, e.g. "v1.2.3"
+KUSTOMIZATION_FILE=$2   # path to kustomization.yaml
+IMAGE_NAME=$3           # image name to update in that file
+
+# Print what we received (helpful in logs/debugging).
+echo "Script received Input Tag: $INPUT_TAG"
+echo "Script received Kustomization File: $KUSTOMIZATION_FILE"
+echo "Script received Image Name: $IMAGE_NAME"
+
+# ---------------------------------------------------------
+# 2. Check prerequisites (yq and file existence)
+# ---------------------------------------------------------
+
+# Check if yq is installed and on PATH.
+# "command -v yq" returns non-zero if yq is not found.
+if ! command -v yq &>/dev/null; then
+  echo "Error: yq command could not be found."
+  exit 1
+fi
+
+# Check that the kustomization file actually exists.
+# -f = true if file exists and is a regular file.
+if [ ! -f "$KUSTOMIZATION_FILE" ]; then
+  echo "Error: Kustomization file not found at '$KUSTOMIZATION_FILE'"
+  exit 1
+fi
+
+echo "Updating Kustomize image '$IMAGE_NAME' in $KUSTOMIZATION_FILE to tag: $INPUT_TAG"
+
+# ---------------------------------------------------------
+# 3. Detect which yq implementation is installed
+#    and update the image tag accordingly
+# ---------------------------------------------------------
+
+# Different "yq" tools exist:
+# - mikefarah/yq (Go-based) -> one syntax
+# - Python yq (wrapper around jq) -> different syntax
+#
+# Here we detect mikefarah/yq by checking its version output.
+# If "mikefarah" appears in yq --version output, we assume Go yq.
+if yq --version 2>&1 | grep -q "mikefarah"; then
+  # -----------------------------
+  # Using mikefarah/yq (Go version)
+  # -----------------------------
+
+  # This command:
+  # - looks at .images[] array
+  # - selects the element where .name == IMAGE_NAME
+  # - sets .newTag to INPUT_TAG
+  # - -i edits the file in place
+  yq eval ".images[] |= select(.name == \"$IMAGE_NAME\").newTag = \"$INPUT_TAG\"" -i "$KUSTOMIZATION_FILE"
+
+  # If an older syntax is needed, you could use the commented line as a fallback:
+  # yq eval ".images[] | select(.name == \"$IMAGE_NAME\") .newTag = \"$INPUT_TAG\"" -i "$KUSTOMIZATION_FILE"
+
+else
+  # -----------------------------
+  # Likely using Python yq
+  # -----------------------------
+
+  # Escape / and & in IMAGE_NAME so they don't break the expression.
+  ESCAPED_IMAGE_NAME=$(printf '%s\n' "$IMAGE_NAME" | sed 's/[\/&]/\\&/g')
+
+  # Run Python yq:
+  # - Process .images[] and for the entry with matching .name,
+  #   set .newTag to INPUT_TAG.
+  # - Write output to a temporary file, then move it back to original.
+  #   (Python yq doesn't support in-place editing like -i.)
+  yq -y ".images[] |= (select(.name == \"$ESCAPED_IMAGE_NAME\") | .newTag = \"$INPUT_TAG\")" \
+    "$KUSTOMIZATION_FILE" > "${KUSTOMIZATION_FILE}.tmp" \
+    && mv "${KUSTOMIZATION_FILE}.tmp" "$KUSTOMIZATION_FILE"
+fi
+
+# ---------------------------------------------------------
+# 4. Show result and exit
+# ---------------------------------------------------------
+
+echo "Successfully updated $KUSTOMIZATION_FILE"
+
+# Print the updated file contents so the user can see the change.
+echo "--- Updated $KUSTOMIZATION_FILE content ---"
+cat "$KUSTOMIZATION_FILE"
+echo "--- End of $KUSTOMIZATION_FILE content ---"
+
+# Exit with success code 0.
+exit 0

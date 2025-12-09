@@ -113,9 +113,10 @@ jobs:
     uses: ./.github/workflows/update-gitops.yaml
     # passing with
     with:
-      tag: ${{ needs.build-and-push-backend.outputs.tags || needs.build-and-push-frontend.outputs.tags }}
-      app: ${{ needs.build-and-push-backend.outputs.app || needs.build-and-push-frontend.outputs.app }}
-    # Passing secrets to calling workflow in order to be avialabe to next workfllow. You have to pass it by yourself with uses
+      tag: ${{ needs.build-and-push-backend.outputs.tag || needs.build-and-push-frontend.outputs.tag }}
+      image: ${{ needs.build-and-push-backend.outputs.image || needs.build-and-push-frontend.outputs.image }}
+      # Define other inputs as needed
+    # Passing secrets to calling workflow in order to be avialabe to next workfllow. You have to pass it by yourself with "uses:". Other workflow calling from this will not have access to this secrets unless you pass it explicitly.
     secrets:
       GITOPS_DEPLOY_KEY: ${{ secrets.GITOPS_DEPLOY_KEY }}
-      DEVOPS_STUDY_APP: ${{ secrets.DEVOPS_STUDY_APP_1 }} # PAT token
+      DEVOPS_STUDY_APP_1: ${{ secrets.DEVOPS_STUDY_APP_1 }} # PAT token

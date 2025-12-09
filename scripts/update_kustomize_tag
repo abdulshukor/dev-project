@@ -32,9 +32,12 @@ fi
 echo "Updating Kustomize image '$IMAGE_NAME' in $KUSTOMIZATION_FILE to tag: $INPUT_TAG"
 
 # Check which version of yq you're using
+# Update the image tag using the appropriate syntax
 if yq --version 2>&1 | grep -q "mikefarah"; then
   # Using mikefarah/yq (Go version)
   yq eval ".images[] |= select(.name == \"$IMAGE_NAME\").newTag = \"$INPUT_TAG\"" -i "$KUSTOMIZATION_FILE"
+  # If using an older version of mikefarah/yq that doesn't support the above syntax, you might need to use:
+  # yq eval ".images[] | select(.name == \"$IMAGE_NAME\") .newTag = \"$INPUT_TAG\"" -i "$KUSTOMIZATION_FILE"  
 else
   # Likely using Python yq
   # Escape any special characters in the image name for use in the filter

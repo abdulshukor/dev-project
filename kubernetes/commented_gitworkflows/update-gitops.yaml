@@ -1,0 +1,144 @@
+# Name of this reusable workflow (shows up in the GitHub UI)
+name: Update GitOps Repository
+
+on:
+  # This workflow is meant to be called from another workflow (reusable workflow),
+  # not triggered directly by push/pull_request.
+  workflow_call:
+    inputs:
+      tag:
+        required: true # The caller MUST provide this input
+        type: string
+        description: "The tag name of the release" # e.g. "v1.2.3" or "backend-123"
+      image:
+        required: true
+        type: string
+        description: "The image being updated" # e.g. "backend" or "frontend"
+    # Secrets expected from the calling workflow.
+    # If they are not passed, this workflow will fail to start.
+    secrets:
+      GITOPS_DEPLOY_KEY:
+        required: true
+        description: "Deploy key for GitOps repository" # SSH key to access the GitOps repo
+      DEVOPS_STUDY_APP_1:
+        required: true
+        description: "PAT GitOps repository" # PAT used for creating PRs, etc.
+
+jobs:
+  update-gitops:
+    # Use GitHub-hosted Ubuntu runner
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # Needed so this job can push commits / create branches in the repo
+
+    steps:
+      # -------------------------------------------------------
+      # 1. Checkout the "actions" repo (the repo that contains this workflow and scripts)
+      # -------------------------------------------------------
+      - name: Checkout Actions Repo
+        uses: actions/checkout@v4
+        with:
+          # This checks out the CURRENT repo (where this workflow lives)
+          # into the folder 'actions-repo' on the runner.
+          path: actions-repo # action repo we are in right now.
+
+      # -------------------------------------------------------
+      # 2. Checkout the GitOps repository (the one we want to modify)
+      # -------------------------------------------------------
+      - name: Checkout GitOps repository
+        uses: actions/checkout@v4
+        with:
+          repository: abdulshukor/study-app-gitops # The GitOps repo to modify
+          ref: main # Checkout the main branch
+          path: study-app-gitops # Folder name on the runner
+          ssh-key: ${{ secrets.GITOPS_DEPLOY_KEY }} # Use the deploy key secret to authenticate via SSH
+
+      # -------------------------------------------------------
+      # 3. Update the image tag in DEV kustomization file and commit directly
+      # -------------------------------------------------------
+      - name: Update Image Tags Dev
+        run: |
+          # Define the target kustomization file for the *dev* environment.
+          # This is inside the GitOps repo we just checked out.
+          KUSTOMIZATION_FILE="./study-app-gitops/apps/dev/kustomization.yaml"
+
+          # Path to the update script in the actions repo.
+          SCRIPT_PATH="./actions-repo/scripts/update_kustomize_tag"
+
+          # Log what we are about to do (tag + file + image).
+          echo "Calling update script with tag: ${{ inputs.tag }}, file: $KUSTOMIZATION_FILE, image: ${{ inputs.image }}"
+
+          # Run the script:
+          #   $1 = tag (e.g. v1.2.3)
+          #   $2 = kustomization file path
+          #   $3 = image name
+          "$SCRIPT_PATH" "${{ inputs.tag }}" "$KUSTOMIZATION_FILE" "${{ inputs.image }}"
+
+      # -------------------------------------------------------
+      # 4. Commit the dev changes directly to the main branch
+      # -------------------------------------------------------
+      - uses: EndBug/add-and-commit@v9
+        with:
+          author_name: GitOps Bot # Commit author name
+          author_email: mail@example.com # Commit author email
+          cwd: ./study-app-gitops # Change working directory to the GitOps repo
+          message: Update ${{ inputs.image }} deployment with tag "${{ inputs.tag }}"
+          # This step stages modified files and creates a commit in the GitOps repo.
+
+      # -------------------------------------------------------
+      # 5. Update the image tag in PROD kustomization file (prepare PR)
+      # -------------------------------------------------------
+      - name: Update Image Tags Prod
+        run: |
+          # Define the target kustomization file for the *prod* environment.
+          # NOTE: This path uses "devops-study-app-gitops" —
+          # make sure this folder name is correct and matches the checked-out repo.
+          KUSTOMIZATION_FILE="./devops-study-app-gitops/apps/prod/kustomization.yaml"
+
+          # Reuse the same update script as for dev.
+          SCRIPT_PATH="./actions-repo/scripts/update_kustomize_tag"
+
+          # Log what we are doing.
+          echo "Calling update script with tag: ${{ inputs.tag }}, file: $KUSTOMIZATION_FILE, image: ${{ inputs.image }}"
+
+          # Run the script to update the prod kustomization file.
+          "$SCRIPT_PATH" "${{ inputs.tag }}" "$KUSTOMIZATION_FILE" "${{ inputs.image }}"
+
+      # -------------------------------------------------------
+      # 6. Create a Pull Request for the PROD changes
+      # -------------------------------------------------------
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          # This requires a Personal Access Token with 'repo' scope on the GitOps repo.
+          # A deploy key cannot create PRs, so we use the PAT secret instead.
+          token: ${{ secrets.DEVOPS_STUDY_APP_1 }}
+
+          # Path to the GitOps repo in the workspace
+          path: ./study-app-gitops
+
+          # Commit message for the changes inside this PR
+          commit-message: Update dev deployments to tag ${{ inputs.tag }}
+
+          # Commit identity (committer and author)
+          committer: GitOps Bot <gitops-bot@github.com>
+          author: GitOps Bot <gitops-bot@github.com>
+
+          # Name of the branch to create / use for the PR
+          branch: gitops/update-tag-${{ inputs.image }}
+
+          # Automatically delete the branch after the PR is merged
+          delete-branch: true
+
+          # Title of the Pull Request
+          title: "Update prod image tag to ${{ inputs.tag }}"
+
+          # Body/description of the PR
+          body: |
+            Update image tag in the dev environment kustomization for ${{ inputs.image }}.
+
+          # Labels to attach to the PR
+          labels: |
+            automated pr
+            gitops
