@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/abdulshukor/dev-project/compare/backend-v0.2.2...backend-v0.2.3) (2025-12-09)
+
+
+### Bug Fixes
+
+* **backend:** backend ([#25](https://github.com/abdulshukor/dev-project/issues/25)) ([d47e7a1](https://github.com/abdulshukor/dev-project/commit/d47e7a1c70adbb125232f9255bfdecd85d39c37a))
+
 ## [0.2.2](https://github.com/abdulshukor/dev-project/compare/backend-v0.2.1...backend-v0.2.2) (2025-12-09)
 
 
