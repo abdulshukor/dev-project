@@ -37,6 +37,21 @@ jobs:
         id: tag
         # env variable availiabe on github runner.
         run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        # $GITHUB_OUTPUT is not the data itself, it’s the path to a file where you can write outputs.
+        # The syntax ${GITHUB_REF#refs/tags/} is a parameter expansion in bash that removes the prefix 'refs/tags/' from the value of GITHUB_REF.
+        # So if GITHUB_REF is 'refs/tags/backend-v1.0.0', then ${GITHUB_REF#refs/tags/} will yield 'backend-v1.0.0'.
+        # By writing this to $GITHUB_OUTPUT, we are setting an output variable named TAG for this step.
+        # This output can then be accessed in subsequent steps using steps.tag.outputs.TAG.
+        # In summary, this step is extracting the actual tag name from the full reference string and making it available for later use in the workflow.
+        # For example:
+        # If GITHUB_REF is refs/tags/backend-v1.0.0
+        # Then after this step, steps.tag.outputs.TAG will be backend-v1.0.0
+        # Value is per run and not persisted between runs.
+        # So each time the workflow runs, this step will extract the tag name from the current GITHUB_REF.
+        # This is useful for tagging Docker images with the correct version.
+        # This extracts the tag name from the full ref string
+        # For example, if GITHUB_REF is refs/tags/backend-v1.0.0
+        # then TAG will be set to backend-v1.0.0
 
       - name: Build and push Backend Docker image
         uses: docker/build-push-action@v5
@@ -47,10 +62,10 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:latest
             # You can add more tags if needed
-            
+
     outputs:
       tag: ${{ steps.tag.outputs.TAG }}
-      app: backend
+      Image: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
 
   build-and-push-frontend:
     name: Build and Push Frontend
@@ -85,6 +100,22 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
+
     outputs:
       tag: ${{ steps.tag.outputs.TAG }}
-      app: frontend
+      image: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}
+
+  trigger_gitops:
+    name: Trigger GitOps
+    needs: [build-and-push-backend, build-and-push-frontend]
+    # Run if either build job succeeded (the other one will be skipped based on the tag)
+    if: always() && (needs.build-and-push-backend.result == 'success' || needs.build-and-push-frontend.result == 'success')
+    uses: ./.github/workflows/update-gitops.yml
+    # passing with
+    with:
+      tag: ${{ needs.build-and-push-backend.outputs.tags || needs.build-and-push-frontend.outputs.tags }}
+      app: ${{ needs.build-and-push-backend.outputs.app || needs.build-and-push-frontend.outputs.app }}
+    # Passing secrets to calling workflow in order to be avialabe to next workfllow. You have to pass it by yourself with uses
+    secrets:
+      GITOPS_DEPLOY_KEY: ${{ secrets.GITOPS_DEPLOY_KEY }}
+      DEVOPS_STUDY_APP: ${{ secrets.DEVOPS_STUDY_APP_1 }} # PAT token

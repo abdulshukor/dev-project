@@ -6,6 +6,13 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 
 # Install dependencies in a cache layer. This speeds up build time
+# when dependencies have not changed.
+# First copy only the lock file and pyproject.toml
+# This allows us to leverage Docker layer caching.
+# Install dependencies without installing the project itself
+# This is done to avoid issues with missing source code
+# during the dependency installation step.
+# 
 RUN --mount=type=cache,target=/root/.cache/uv \
   --mount=type=bind,source=uv.lock,target=uv.lock \
   --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
@@ -21,6 +28,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.13-alpine
 
 # Create a non-root user and group with specific IDs
+# This is a best practice for running applications in containers
+# to enhance security.
 RUN addgroup -S -g 1000 app && adduser -S -u 1000 -G app app
 
 # Copy the environment, but not the source code

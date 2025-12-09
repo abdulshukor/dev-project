@@ -275,4 +275,17 @@ echo -e "${YELLOW}k3d cluster delete $CLUSTER_NAME${NC}"
 # -n STRING → true if STRING is non-empty
 # -z STRING → true if STRING is empty
 
+# In bash command only return 0 (success) or non-zero (failure).
+# So you can use commands directly in if statements:
+# if command; then
+#   # success
+# else
+#   # failure
+# fi  
+# Example:
+# if command -v k3d &>/dev/null; then
+#   echo "k3d is installed"
+# else
+#   echo "k3d is not installed"
+# fi  
 
