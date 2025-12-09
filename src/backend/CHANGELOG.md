@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/abdulshukor/dev-project/compare/backend-v0.2.0...backend-v0.2.1) (2025-12-09)
+
+
+### Bug Fixes
+
+* **backend:** trigger ci ([b6e7587](https://github.com/abdulshukor/dev-project/commit/b6e75877eb72bf22065085ce2725bca0ba1f5b30))
+
 ## [0.2.0](https://github.com/abdulshukor/dev-project/compare/backend-v0.1.0...backend-v0.2.0) (2025-11-29)
 
 
