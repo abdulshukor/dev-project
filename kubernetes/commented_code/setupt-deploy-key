@@ -11,9 +11,15 @@ set -e
 
 # List of environment variable names that must be set
 required_vars=("DEVPOD_WORKSPACE_ID" "GITUSER" "GITOPS_REPO")
+# Check each required variable
+# If any are missing, we will report them all at once
+# Its array of names of required env vars
+# DEVPOD_WORKSPACE_ID is provided by DevPods automatically
+
 
 # Array to collect any that are missing
 missing_vars=()
+# missing_vars=() initializes an empty array
 
 # Loop over each required variable name
 for var in "${required_vars[@]}"; do
@@ -21,7 +27,15 @@ for var in "${required_vars[@]}"; do
   # If var="GITUSER", then ${!var} means $GITUSER (its value).
   # -z checks if the expanded value is empty.
   if [ -z "${!var}" ]; then
+    # ${!var}" gets the value of the env var whose name is in $var. !var is indirect expansion. 
+    # !var is indirect expansion means if var="GITUSER", then ${!var} is $GITUSER (its value).
+    # indirect expansion allows us to check the value of a variable whose name is stored in another variable.
+    # example: var="GITUSER", then ${!var} is $GITUSER (its value).
+    # when to use indirect expansion: when you have the name of a variable stored in another variable and you want to get the value of that variable.
     # If not set or empty, add the variable name to missing_vars array
+    # ${!var} vs ${var} : ${var} gives the name of the variable (e.g., "GITUSER"), while ${!var} gives the value of that variable (e.g., "myusername").
+    # We want the value to check if it's empty, so we use ${!var}.
+    # If empty, add to missing_vars
     missing_vars+=("$var")
     # -z test returns true if the string is null (empty)
     # So we add the var name to missing_vars
@@ -32,6 +46,8 @@ done
 
 # If the number of missing variables is not zero, show an error and exit
 if [ ${#missing_vars[@]} -ne 0 ]; then
+# ${#missing_vars[@]} gives the length of the array (number of elements)
+# -ne means "not equal"
   echo "Error: The following required environment variables are not set:"
   # Print each missing var name in a nice list
   for var in "${missing_vars[@]}"; do
@@ -69,7 +85,11 @@ KEY_COMMENT="deploy-key@study-app-gitops"
 # -----------------------------
 
 # command -v gh checks if "gh" is available in PATH; &>/dev/null hides all output.
+# what is PATH : PATH is an environment variable that lists directories where executable programs are located.
+# command -v gh returns 0 (success) if gh is found, non-zero (failure) if not found.
 if ! command -v gh &>/dev/null; then
+# ! negates the exit status, so this block runs if gh is NOT found. Conditon is true if gh is not found.
+# If gh is not found, print error and exit.
   echo "Error: GitHub CLI (gh) is not installed or not in PATH."
   exit 1
 fi
@@ -101,6 +121,7 @@ echo "Generating SSH key pair in $KEY_PATH..."
 # Check if either the private key or public key already exists
 # to avoid overwriting keys unintentionally.
 if [ -f "$KEY_PATH" ] || [ -f "$KEY_PATH.pub" ]; then
+# -f "$KEY_PATH"  checks if the file at KEY_PATH exists and is a regular file.
   echo "SSH key files already exist at $KEY_PATH(.pub). Skipping generation."
   echo "If you want to regenerate, please remove the existing files first."
 else

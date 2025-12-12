@@ -27,6 +27,12 @@ if [ "$#" -ne 3 ]; then
   # $0 is a special variable that holds the name of the script being executed.
   echo "Usage: $0 <input-tag> <kustomization-file-path> <image-name>"
   exit 1   # Exit with error code 1.
+  # Why exit 1 if I already have set -e at the top?
+  # Because set -e only causes the script to exit on command failures,
+  # not on argument count checks. We need to explicitly exit here.
+  # This ensures the script stops if the user doesn't provide the correct number of arguments.
+  # This is important to avoid running the script with missing or incorrect parameters.
+  
 fi
 
 # Save positional arguments into nicely named variables.
@@ -45,6 +51,9 @@ echo "Script received Image Name: $IMAGE_NAME"
 
 # Check if yq is installed and on PATH.
 # "command -v yq" returns non-zero if yq is not found.
+# What is yq?
+# yq is a command-line YAML processor, similar to jq for JSON.
+# It allows you to read, write, and manipulate YAML files from the command line.  
 if ! command -v yq &>/dev/null; then
   echo "Error: yq command could not be found."
   exit 1
@@ -80,6 +89,7 @@ if yq --version 2>&1 | grep -q "mikefarah"; then
   # - selects the element where .name == IMAGE_NAME
   # - sets .newTag to INPUT_TAG
   # - -i edits the file in place
+  # eval = evaluate the expression. When using mikefarah/yq, "eval" is the preferred command.
   yq eval ".images[] |= select(.name == \"$IMAGE_NAME\").newTag = \"$INPUT_TAG\"" -i "$KUSTOMIZATION_FILE"
 
   # If an older syntax is needed, you could use the commented line as a fallback:
@@ -96,8 +106,14 @@ else
   # Run Python yq:
   # - Process .images[] and for the entry with matching .name,
   #   set .newTag to INPUT_TAG.
-  # - Write output to a temporary file, then move it back to original.
-  #   (Python yq doesn't support in-place editing like -i.)
+  # - Write output to a temporary file, then move it back to original. Why ? 
+  # Because Python yq doesn't support in-place editing with -i.
+  # So we create a temp file and then overwrite the original.
+  # This two-step process ensures the original file is updated correctly.
+  # Note: 
+  # Using a temp file is a common pattern when a tool lacks in-place editing.
+  # It avoids issues with partial writes or data loss.
+  # (Python yq doesn't support in-place editing like -i.)
   yq -y ".images[] |= (select(.name == \"$ESCAPED_IMAGE_NAME\") | .newTag = \"$INPUT_TAG\")" \
     "$KUSTOMIZATION_FILE" > "${KUSTOMIZATION_FILE}.tmp" \
     && mv "${KUSTOMIZATION_FILE}.tmp" "$KUSTOMIZATION_FILE"

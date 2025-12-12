@@ -36,6 +36,8 @@ jobs:
       - name: Extract tag name
         id: tag
         # env variable availiabe on github runner.
+        # Value is per run and not persisted between runs.
+        # So each time the workflow runs, this step will extract the tag name from the current GITHUB_REF.
         run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
         # $GITHUB_OUTPUT is not the data itself, it’s the path to a file where you can write outputs.
         # The syntax ${GITHUB_REF#refs/tags/} is a parameter expansion in bash that removes the prefix 'refs/tags/' from the value of GITHUB_REF.
@@ -116,7 +118,8 @@ jobs:
       tag: ${{ needs.build-and-push-backend.outputs.tag || needs.build-and-push-frontend.outputs.tag }}
       image: ${{ needs.build-and-push-backend.outputs.image || needs.build-and-push-frontend.outputs.image }}
       # Define other inputs as needed
-    # Passing secrets to calling workflow in order to be avialabe to next workfllow. You have to pass it by yourself with "uses:". Other workflow calling from this will not have access to this secrets unless you pass it explicitly.
+    # Passing secrets to calling workflow in order to be avialabe to next workfllow. You have to pass it by yourself with "uses:". 
+    #Other workflow calling from this will not have access to this secrets unless you pass it explicitly.
     secrets:
       GITOPS_DEPLOY_KEY: ${{ secrets.GITOPS_DEPLOY_KEY }}
       DEVOPS_STUDY_APP_1: ${{ secrets.DEVOPS_STUDY_APP_1 }} # PAT token

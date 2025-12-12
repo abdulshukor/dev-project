@@ -101,6 +101,13 @@ echo "Building backend image..."
 # -t backend:dev -> tag image as backend:dev
 # -f PATH/TO/Dockerfile -> use that Dockerfile
 # build context is the backend source directory
+# build context is where Docker looks for files referenced in the Dockerfile 
+# (e.g., COPY instructions)
+# We specify it explicitly here.
+# Here we set it to the backend source directory
+# So Docker can find all necessary files.
+# "$BASE_DIR/src/backend/Dockerfile" is the path to the backend Dockerfile
+# "$BASE_DIR/src/backend" is the build context
 docker build -t backend:dev -f "$BASE_DIR/src/backend/Dockerfile" "$BASE_DIR/src/backend"
 
 echo "Building frontend image..."
@@ -168,7 +175,7 @@ get_service_url() {
     fi
 
     # Otherwise, print a dot, wait, and try again
-    echo -n "."
+    echo -n "." # echo -n "." # -n prevents newline
     sleep 2
     ((attempt++)) # arithmetic expansion, increment attempt
   done

@@ -15,6 +15,11 @@ set -e
 # - which GitHub user/org to use,
 # - which GitOps repository to target.
 required_vars=("DEVPOD_WORKSPACE_ID" "GITUSER" "GITOPS_REPO")
+# Explanation:
+# DEVPOD_WORKSPACE_ID: Unique identifier for the current DevPod workspace.
+# GITUSER: GitHub username or organization name where the GitOps repo is hosted.
+# GITOPS_REPO: Name of the GitOps repository containing the cluster configuration.
+# you need these to construct paths and URLs later in the script. "GITUSER" "GITOPS_REPO" 
 
 # This array will hold the names of any variables that are missing.
 missing_vars=()
@@ -76,6 +81,7 @@ flux bootstrap git
 --branch=main
 # --private-key-file: path to the SSH private key used to access the repo.
 --private-key-file="$KEY_DIR"/study_app_gitops_deploy_key
+# Public key is already added to the GitHub repo as a deploy key.
 # --path: where in the repo the cluster configuration lives (e.g. clusters/dev).
 --path=clusters/dev
 

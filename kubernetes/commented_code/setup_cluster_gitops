@@ -20,6 +20,10 @@ NC='\033[0m'        # No Color (reset)
 # These environment variables must be set before running:
 # - DEVPOD: usually the workspace folder name (e.g. dev-project)
 # - DEVPOD_WORKSPACE_ID: the DevPod workspace ID used in the /workspaces path
+# "DEVPOD" vs "DEVPOD_WORKSPACE_ID" 
+# DEVPOD = name of the folder
+# DEVPOD_WORKSPACE_ID = unique identifier for the workspace
+
 required_vars=("DEVPOD" "DEVPOD_WORKSPACE_ID")
 missing_vars=() # empty array to collect missing variable names
 
