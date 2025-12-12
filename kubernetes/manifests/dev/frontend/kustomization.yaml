@@ -13,11 +13,16 @@ patches:
       name: frontend
       namespace: study-app
 #JSON patch to the Deployment. Replaced var by DEBUG and API_URL
-    patch: |-
-      - op: replace
+# Set DEBUG to "true" and API_URL to "http://dev-backend:22112"
+# This configures the frontend application to run in debug mode and point to the development backend service.
+# The API_URL points to the backend service within the same namespace, using the service name and port.
+# Explian what the patch does.
+# The patch modifies the environment variables of the frontend container to enable debugging and connect to the appropriate backend service for the development environment.
+    patch: |- # example of a JSON patch. Explain what it does. 
+      - op: replace  # - op: replace  means we are replacing existing values. 
         path: /spec/template/spec/containers/0/env
         value:
-          - name: DEBUG
+          - name: DEBUG # Set DEBUG to "true" if not already set. If - name: DEBUG not exists, it will be added.
             value: "true"
           - name: API_URL
             value: "http://dev-backend:22112"

@@ -1,6 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# List of all resources to be included in this kustomization.
+# These can be individual YAML files or directories containing multiple manifests.
+# The order matters if there are dependencies between resources.
 resources:
   - namespace.yaml
   - backend
@@ -13,6 +16,10 @@ namespace: study-app
 namePrefix: dev-
 
 # Patch: updates images by name across all resources. image: backend:latest Kustomize will turn it into image: backend:dev
+# This is helpful for deploying different versions of images in different environments.
+# Here, we are setting the backend and frontend images to use the 'dev' tag.
+# For example, if the original image is backend:latest, it will be changed to backend:dev.
+# This allows for easy switching between different versions of images without modifying the original manifests.
 images:
   - name: backend
     newTag: dev
