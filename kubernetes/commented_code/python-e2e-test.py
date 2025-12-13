@@ -1,3 +1,5 @@
+# explian why we need /usr/bin/env python3
+# The shebang line #!/usr/bin/env python3 is used at the very beginning of a script to indicate which interpreter should be used to run the script.
 #!/usr/bin/env python3
 """
 This script performs end-to-end (E2E) testing of the "study-app" running in a k3d Kubernetes cluster.
@@ -57,6 +59,8 @@ class K8sTestEnvironment:
 
         # Name of the k3d cluster to create/use
         self.cluster_name = cluster_name
+        # Why use self : Using self allows these variables to be accessed by other methods within the class.
+        # if we did not use self, these variables would be local to the __init__ method and not accessible elsewhere.
 
         # If True, we assume the cluster exists and we do NOT create/delete it
         self.skip_cluster_creation = skip_cluster_creation
@@ -74,6 +78,15 @@ class K8sTestEnvironment:
         self.root_dir = os.path.dirname(self.base_dir)
 
         # URLs will be populated after deployment and service discovery
+        # show where is used: used in test_backend and test_frontend methods to access the backend and frontend services.
+        # Why declare here: Declaring these as instance variables allows them to be set once
+        # After deployment and then accessed by multiple test methods.
+        # What is intance variable: An instance variable is a variable that is associated with a specific instance of a class.
+        # Each instance of the class has its own copy of the instance variable.
+        # This is in contrast to class variables, which are shared across all instances of the class.
+        # Instance variables are typically defined within methods (like __init__) using the self keyword.
+        # calss variable vs instance variable:
+        # Class variables are shared across all instances of a class, while instance variables are unique to each instance.
         self.backend_url = ""
         self.frontend_url = ""
 
@@ -82,9 +95,16 @@ class K8sTestEnvironment:
         # test_session is a dictionary with two keys:
         # - "minutes": An integer representing the duration of the study session in minutes.
         # - "tag": A string representing a tag or label associated with the study session.
+        # where is used this test_session: used in test_backend method when creating a session via POST /sessions endpoint.
+        # The backend is expected to echo these values back in the created session response.
+        # This allows us to verify that the backend correctly processes and stores session data.
+        # Why we need this: This helps ensure that the backend API is functioning correctly.
+        # show the code where is used : see test_backend method below.
+        # This is also instance variable because it is defined with self.
         self.test_session = {"minutes": 45, "tag": "kubernetes"}
 
         # Fail fast if kubectl is not installed
+        # Why self: Using self allows the method to be called on the instance of the class.
         self.check_kubectl_installed()
 
     # -------------------------------------------------------------------------
@@ -94,6 +114,7 @@ class K8sTestEnvironment:
     def check_kubectl_installed(self):
         """Ensure that 'kubectl' is installed and available in PATH."""
         # shutil.which("kubectl") shutil is a utility that checks if the given command is available in the system's PATH.
+        # is None means that if kubectl is not found, the function will return None.
         if shutil.which("kubectl") is None:
             # kubectl not found; without it we cannot manage the cluster or resources
             logger.error(
@@ -109,11 +130,19 @@ class K8sTestEnvironment:
         # Parameters:
         # - cmd: The command string to execute. Is this requited or optional parameter: Required parameter
         # - cwd: The working directory in which to run the command. Is this requited or optional parameter: Optional parameter (default is None)
-        # How to know if parameter is optional or required: If a parameter has a default value (like None), it is optional. If it does not have a default value, it is required.
-        # check=True is an optional parameter with a default value of True. how to know: If a parameter has a default value (like True), it is optional. If it does not have a default value, it is required.
+
+        # How to know if parameter is optional or required: If a parameter has a default value (like None),
+        # it is optional. If it does not have a default value, it is required.
+        # check=True is an optional parameter with a default value of True.
+
+        # check=True what it does mean: If check is True, the method will raise a CalledProcessError if the command exits with a non-zero status (indicating an error).
+        # If check is False, the method will not raise an exception on non-zero exit status.
+
+        # how to know: If a parameter has a default value (like True), it is optional. If it does not have a default value, it is required.
         # capture_output=False what is mean if false or true:
         # If capture_output is True, the method captures the standard output and standard error of the command and returns them in the CompletedProcess object.
         # If capture_output is False, the command's output is not captured, and it will be printed directly to the console.
+
         # shell=False how to check if shell is True or False: and where is shell come from:
         # The shell parameter determines whether to run the command through the shell (like bash) or directly.
         # If shell is True, the command is executed through the shell, allowing for shell features like pipes and redirection.
@@ -129,6 +158,8 @@ class K8sTestEnvironment:
         :param capture_output: If True, capture stdout/stderr and return them.
         :return: subprocess.CompletedProcess instance.
         """
+        # {cmd} why not have self: cmd is a parameter passed to the method, so we refer to it directly as cmd.
+        # If it were an instance variable, we would use self.cmd.
         logger.info(f"Running command: {cmd}")
 
         # Use shell=True if the command string relies on shell features
@@ -140,6 +171,7 @@ class K8sTestEnvironment:
         # Explian below:
         # If shell is True, we pass the command string directly to subprocess.run.
         # If shell is False, we split the command string into a list of arguments using cmd.split().
+
         # What is subproceass run: subprocess.run is a function that runs a command in a subprocess,
         # subprocess is a module for spawning new processes, connecting to their input/output/error pipes,
         # and obtaining their return codes.
@@ -148,6 +180,7 @@ class K8sTestEnvironment:
         # For example, the command "kubectl get pods" would be split into ["kubectl", "get", "pods"].
         # This allows subprocess.run to execute the command correctly without relying on shell features.
         # In summary, shell=True allows for shell features, while shell=False requires splitting the command into a list of arguments.
+
         # Dont understand the below: Example:
         # If cmd is "kubectl get pods" and shell is False, we call subprocess.run(["kubectl", "get", "pods"], ...).
         # If shell is True, we call subprocess.run("kubectl get pods", shell=True, ...).
@@ -155,7 +188,19 @@ class K8sTestEnvironment:
         # If shell is True, the command is executed through the shell, allowing for shell features like pipes and redirection.
         # If shell is False, the command is executed directly without shell features, and we need to provide the command as a list of arguments.
         # This distinction is important for security and functionality, depending on the command being run.
+        # If shell is True, we call subprocess.run("kubectl get pods", shell=True, ...).
+        # what is  subprocess. run: subprocess.run is a function that runs a command in a subprocess,
+        # subprocess is a module for spawning new processes, connecting to their input/output/error pipes,
+        # and obtaining their return codes.
 
+        # why we need below if else: We need the if-else structure to handle the two different ways of executing commands
+        # where cmd, shell, check, cwd, capture_output come from: These are parameters passed to the run_command method.
+        # if we remoove below code what will happen: If we remove the if-else structure,
+        # we would not be able to handle commands that require shell features correctly.
+        # This could lead to errors when executing commands that rely on shell functionality.
+        # For example, commands with pipes or redirection would fail if shell is False.
+        # Therefore, the if-else structure is necessary to ensure that commands are executed correctly based on the shell parameter.
+        # where run come from: run is a function within the subprocess module.
         if shell:
             result = subprocess.run(
                 cmd,
@@ -188,24 +233,38 @@ class K8sTestEnvironment:
         """
         if self.skip_cluster_creation:
             logger.info("Skipping cluster creation as requested")
+            # return nothing means: This means that the function will exit at this point and not execute any further code within it.
+            # is method return or if else: This is a return statement that exits the method early.
+            # you can retrun in funcion any time you want: Yes, you can use a return statement at any point in a function or method to exit early.
             return
 
         # ---------------------------------------------------------------------
         # Check if cluster already exists
         # ---------------------------------------------------------------------
+        # self.run_command why self: Using self allows us to call the run_command method on the current instance of the K8sTestEnvironment class.
         result = self.run_command(
             "k3d cluster list",
             shell=True,  # `k3d cluster list` is a simple shell command
+            # check=False means: This means that if the command exits with a non-zero status (indicating an error),
+            # which command fails: In this context, it refers to the "k3d cluster list" command.
+            # what is mean if check is False: If check is set to False, the run_command method will not raise an exception if the command fails (i.e., exits with a non-zero status).
             check=False,  # Do not raise if this fails
             capture_output=True,  # We want to read stdout
         )
 
+        # cluster_exists why not self: cluster_exists is a local variable defined within the setup_cluster method.
+        #  cluster_exists = False - what it means false means here exist or not exits:
         cluster_exists = False
         # hasattr checks if the result object has the attribute "stdout"
         # This is important because if the command failed and didn't produce any output,
         # trying to access result.stdout directly could raise an AttributeError.
+        # is not None means is not empty: This check ensures that the stdout attribute is not None,
+        # meaning that there is some output to process.
         if hasattr(result, "stdout") and result.stdout is not None:
             # Decode bytes -> string, then check if our cluster name appears
+            # decode("utf-8") why use here and what it means explain:
+            # The stdout attribute of the result object is typically in bytes format.
+            # To convert it to a human-readable string, we use the decode("utf-8") method.
             cluster_exists = self.cluster_name in result.stdout.decode("utf-8")
 
         # If it exists, delete it to start from a clean state
@@ -216,6 +275,10 @@ class K8sTestEnvironment:
         # ---------------------------------------------------------------------
         # Create new k3d cluster using config file
         # ---------------------------------------------------------------------
+        # os.path.join why use os.path.join:
+        # os.path.join is used to construct a file path that is compatible with the operating system.
+        # It ensures that the correct path separators are used (e.g., "/" for Unix-like systems and "\" for Windows).
+        # This is important for cross-platform compatibility.
         config_path = os.path.join(self.base_dir, "k3d-config.yaml")
         self.run_command(f"k3d cluster create --config {config_path}")
 
@@ -289,6 +352,7 @@ class K8sTestEnvironment:
             logger.error("Failed to get services from namespace")
             return False
 
+        # Split output into lines, each line is a service name
         services = result.stdout.decode("utf-8").strip().split("\n")
 
         # Will hold the actual service names (no "service/" prefix)
@@ -300,6 +364,11 @@ class K8sTestEnvironment:
         # ---------------------------------------------------------------------
         for svc in services:
             # Convert "service/frontend-svc" -> "frontend-svc"
+            # svc_name = svc.split("/")[-1] explain below:
+            # The split("/") method splits the string svc into a list of substrings using "/" as the delimiter.
+            # The [-1] index retrieves the last element from that list,
+            # which corresponds to the actual service name without the "service/" prefix.
+            # For example, if svc is "service/frontend-svc", svc.split("/") results in ["service", "frontend-svc"],
             svc_name = svc.split("/")[-1]
             if "frontend" in svc_name:
                 frontend_svc_name = svc_name
@@ -802,33 +871,82 @@ class K8sTestEnvironment:
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
     # Setup CLI argument parser with helpful description
+    # argparse.ArgumentParser is a helper from the argparse module that lets you define command-line arguments.
+    # description= is just text that will show up if someone runs:
     parser = argparse.ArgumentParser(
         description="Run end-to-end tests for study-app in k3d"
     )
 
     # Flag: skip cluster creation/deletion
+    # This defines a command-line argument called skip-cluster-creation.
+    # It’s optional (because it starts with --).
+    # If the user doesn’t provide it, it defaults to "study-app-cluster".
+    # help= is what shows in --help output.
+    # skip-cluster-creation - coming from where: This is the name of the command-line argument being defined.
+    # coming from init method: This argument corresponds to the skip_cluster_creation parameter in the __init__ method of the K8sTestEnvironment class.
+    # python script.py --skip-cluster-creation
+    # If the user runs the script with this flag, args.skip_cluster_creation will be set to True.
+    # If they omit it, args.skip_cluster_creation will be False.
+    #  action="store_true" -  If the user includes the flag → the value becomes True
+    # If the user does NOT include the flag → the value becomes False
+    # So args.skip_cluster_creation will always be a boolean (True or False).
+
     parser.add_argument(
         "--skip-cluster-creation",
         action="store_true",
+        # default="study-app-cluster",
+        # what is help mean here: This text explains to the user what the flag does when they run the script with --help.
         help="Skip creating a new cluster (use an existing one instead)",
     )
 
     # Flag: don't cleanup on success (leave resources for debugging)
+    # This defines a boolean flag.
+    # action="store_true" means:
+    # If you include --skip-cluster-creation on the command line → args.skip_cluster_creation will be True.
+    # This is the name of the flag the user can pass when running the script.
+    # python script.py --no-cleanup
+    # If --no-cleanup is present on the command line → set args.no_cleanup = True
+    # If --no-cleanup is NOT present → args.no_cleanup = False
+
     parser.add_argument(
         "--no-cleanup",
+        # from where action="store_true" come from: This is a standard way in argparse to define a flag that, when present, sets the corresponding variable to True.
+        # what is check_true mean: It means that if the user includes the --no-cleanup flag when running the script, the args.no_cleanup variable will be set to True.
         action="store_true",
         help="Don't cleanup resources after tests (useful for debugging)",
     )
 
     # Parse command-line arguments
+    # This reads the actual command-line arguments the user passed in and puts them into an object called args.
+    # After this line you can use:
+    # args.skip_cluster_creation
+    # args = parser.parse_args() is the line where your script actually reads and processes the command-line arguments.
+    # Read all the options the user passed in and store them in args so I can use them in my code.”
     args = parser.parse_args()
 
     # Initialize test environment based on CLI arguments
+    # Here you create an instance of your class K8sTestEnvironment.
+    # You pass it the values from the command line:
+    # cluster_name will be whatever the user passed as --cluster-name (or "study-app-cluster" by default).
+    # skip_cluster_creation will be True or False based on whether the flag was present.
+    # Inside __init__ of K8sTestEnvironment, it will run setup code (like checking kubectl).
+    # If the user ran with --skip-cluster-creation, then args.skip_cluster_creation is True, so the environment will not try to create a new cluster.
     test_env = K8sTestEnvironment(skip_cluster_creation=args.skip_cluster_creation)
+
+    # For now we’re just verifying that initialization works
+    logger.info(
+        "Environment initialized. skip_cluster_creation=%s, no-cleanup=%s",
+        test_env.skip_cluster_creation,
+        # test_env.no-cleanup,
+    )
+
+    logger.info("Starting K8sTestEnvironment with args: %s", args)
 
     # Run tests:
     # - If --no-cleanup is NOT provided -> cleanup_on_success=True
     # - cleanup_on_failure remains False (keep resources on failure for debugging)
+    # where run come from : run is a method defined in the K8sTestEnvironment class.
+    # You call it on the test_env instance you just created.
     success = test_env.run(cleanup_on_success=not args.no_cleanup)
 
     # Exit code 0 = success, 1 = failure (important for CI/CD pipelines)
