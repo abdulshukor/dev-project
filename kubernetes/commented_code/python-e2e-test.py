@@ -31,6 +31,12 @@ logging.basicConfig(
     level=logging.INFO,  # Default log level: INFO and above
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",  # Log format
 )
+# logger = logging.getLogger("e2e-tests") explian below:
+# This line creates a logger instance named "e2e-tests".
+# A logger is an object that you use to log messages in your application.
+# By naming the logger, you can easily identify log messages that come from this specific part of your codebase.
+# Using a named logger is beneficial for several reasons:
+# 1. Granularity: You can have different loggers for different modules or components of your application. This allows you to control logging behavior (like log levels) on a per-module basis
 logger = logging.getLogger("e2e-tests")  # Named logger used throughout the script
 
 
@@ -46,6 +52,9 @@ class K8sTestEnvironment:
     """
 
     def __init__(self, cluster_name="study-app-cluster", skip_cluster_creation=False):
+        # kip_cluster_creation=False. means we will create and delete the cluster ourselves.
+        # If True, we assume the cluster already exists.
+
         # Name of the k3d cluster to create/use
         self.cluster_name = cluster_name
 
@@ -53,6 +62,12 @@ class K8sTestEnvironment:
         self.skip_cluster_creation = skip_cluster_creation
 
         # Directory where this script resides
+        # Example: /path/to/project/kubernetes/commented_code
+        # Explian why: We use os.path.abspath to get the full path of this script,
+        # then os.path.dirname to get its directory.
+        # This is useful for locating related files (like k3d-config.yaml)
+        # (__file__) gives the path of the current script.
+
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Project root directory (one level up from script)
@@ -63,6 +78,10 @@ class K8sTestEnvironment:
         self.frontend_url = ""
 
         # Sample payload used when testing backend "session" endpoints
+        # This payload simulates a user session with a duration of 45 minutes and a tag "kubernetes".test_session
+        # test_session is a dictionary with two keys:
+        # - "minutes": An integer representing the duration of the study session in minutes.
+        # - "tag": A string representing a tag or label associated with the study session.
         self.test_session = {"minutes": 45, "tag": "kubernetes"}
 
         # Fail fast if kubectl is not installed
@@ -74,6 +93,7 @@ class K8sTestEnvironment:
 
     def check_kubectl_installed(self):
         """Ensure that 'kubectl' is installed and available in PATH."""
+        # shutil.which("kubectl") shutil is a utility that checks if the given command is available in the system's PATH.
         if shutil.which("kubectl") is None:
             # kubectl not found; without it we cannot manage the cluster or resources
             logger.error(
@@ -82,7 +102,23 @@ class K8sTestEnvironment:
             sys.exit(1)  # Exit immediately with error code
         logger.info("kubectl is installed and available.")
 
+    # wrapper function to run shell commands from within python commands
     def run_command(self, cmd, cwd=None, shell=False, check=True, capture_output=False):
+        # run_command(self, cmd, cwd=None, shell=False, check=True, capture_output=False): what are required and optinonal parameters
+        # This method executes a shell command with logging and standardized options.
+        # Parameters:
+        # - cmd: The command string to execute. Is this requited or optional parameter: Required parameter
+        # - cwd: The working directory in which to run the command. Is this requited or optional parameter: Optional parameter (default is None)
+        # How to know if parameter is optional or required: If a parameter has a default value (like None), it is optional. If it does not have a default value, it is required.
+        # check=True is an optional parameter with a default value of True. how to know: If a parameter has a default value (like True), it is optional. If it does not have a default value, it is required.
+        # capture_output=False what is mean if false or true:
+        # If capture_output is True, the method captures the standard output and standard error of the command and returns them in the CompletedProcess object.
+        # If capture_output is False, the command's output is not captured, and it will be printed directly to the console.
+        # shell=False how to check if shell is True or False: and where is shell come from:
+        # The shell parameter determines whether to run the command through the shell (like bash) or directly.
+        # If shell is True, the command is executed through the shell, allowing for shell features like pipes and redirection.
+        # If shell is False, the command is executed directly without shell features, and we need to provide the command as a list of arguments.
+
         """
         Run a shell command with logging and standardized options.
 
@@ -96,6 +132,30 @@ class K8sTestEnvironment:
         logger.info(f"Running command: {cmd}")
 
         # Use shell=True if the command string relies on shell features
+        # shell means the command is run through the shell (like bash),
+        # allowing for shell features like pipes, redirection, etc.
+        # If False, we split the command into a list of arguments.
+        # For complex commands, we need shell=True.
+        # For simple commands without shell features, we can use shell=False.
+        # Explian below:
+        # If shell is True, we pass the command string directly to subprocess.run.
+        # If shell is False, we split the command string into a list of arguments using cmd.split().
+        # What is subproceass run: subprocess.run is a function that runs a command in a subprocess,
+        # subprocess is a module for spawning new processes, connecting to their input/output/error pipes,
+        # and obtaining their return codes.
+        # pass the command string directly to subprocess.run. vs shell is False, we split the command string into a list of arguments using cmd.split().
+        # # means that we break the command string into individual components based on spaces. why: This is necessary because subprocess.run expects a list of arguments when shell is False.
+        # For example, the command "kubectl get pods" would be split into ["kubectl", "get", "pods"].
+        # This allows subprocess.run to execute the command correctly without relying on shell features.
+        # In summary, shell=True allows for shell features, while shell=False requires splitting the command into a list of arguments.
+        # Dont understand the below: Example:
+        # If cmd is "kubectl get pods" and shell is False, we call subprocess.run(["kubectl", "get", "pods"], ...).
+        # If shell is True, we call subprocess.run("kubectl get pods", shell=True, ...).
+        # what is mean if shell is True or False:
+        # If shell is True, the command is executed through the shell, allowing for shell features like pipes and redirection.
+        # If shell is False, the command is executed directly without shell features, and we need to provide the command as a list of arguments.
+        # This distinction is important for security and functionality, depending on the command being run.
+
         if shell:
             result = subprocess.run(
                 cmd,
@@ -141,6 +201,9 @@ class K8sTestEnvironment:
         )
 
         cluster_exists = False
+        # hasattr checks if the result object has the attribute "stdout"
+        # This is important because if the command failed and didn't produce any output,
+        # trying to access result.stdout directly could raise an AttributeError.
         if hasattr(result, "stdout") and result.stdout is not None:
             # Decode bytes -> string, then check if our cluster name appears
             cluster_exists = self.cluster_name in result.stdout.decode("utf-8")
@@ -194,6 +257,7 @@ class K8sTestEnvironment:
         # ---------------------------- Import into k3d -------------------------
         logger.info("Importing images into k3d")
         # Import backend image into cluster
+        # from run_command come from above
         self.run_command(f"k3d image import backend:dev -c {self.cluster_name}")
         # Import frontend image into cluster
         self.run_command(f"k3d image import frontend:dev -c {self.cluster_name}")
@@ -218,6 +282,8 @@ class K8sTestEnvironment:
             capture_output=True,
         )
 
+        # result.returncode != 0:
+        # The returncode attribute of the result object indicates the exit status of the command that was run.
         if result.returncode != 0:
             # If kubectl call fails, we can't find services
             logger.error("Failed to get services from namespace")

@@ -7,6 +7,7 @@ resources:
 
 # Patch for the frontend deployment
 # Find the Kubernetes Deployment named frontend (in the study-app namespace), and apply the following patch to it.
+# patches means we are modifying an existing resource. Here we are modifying the Deployment resource named frontend in the study-app namespace.
 patches:
   - target:
       kind: Deployment
