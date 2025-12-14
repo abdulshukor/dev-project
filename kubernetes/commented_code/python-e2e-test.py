@@ -1,9 +1,10 @@
 # explian why we need /usr/bin/env python3
 # The shebang line #!/usr/bin/env python3 is used at the very beginning of a script to indicate which interpreter should be used to run the script.
+
 #!/usr/bin/env python3
+
 """
 This script performs end-to-end (E2E) testing of the "study-app" running in a k3d Kubernetes cluster.
-
 High-level flow:
 1. (Optionally) create a k3d cluster.
 2. Build backend and frontend Docker images.
@@ -13,6 +14,7 @@ High-level flow:
 6. Wait for services to become reachable over HTTP.
 7. Run backend and frontend tests (API + basic HTML checks).
 8. Clean up cluster or namespace depending on flags and test outcome.
+
 """
 
 import os
@@ -34,11 +36,12 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",  # Log format
 )
 # logger = logging.getLogger("e2e-tests") explian below:
-# This line creates a logger instance named "e2e-tests".
+# --> This line creates a logger instance named "e2e-tests".
 # A logger is an object that you use to log messages in your application.
 # By naming the logger, you can easily identify log messages that come from this specific part of your codebase.
 # Using a named logger is beneficial for several reasons:
-# 1. Granularity: You can have different loggers for different modules or components of your application. This allows you to control logging behavior (like log levels) on a per-module basis
+# 1. Granularity: You can have different loggers for different modules or components of your application.
+# This allows you to control logging behavior (like log levels) on a per-module basis
 logger = logging.getLogger("e2e-tests")  # Named logger used throughout the script
 
 
@@ -51,7 +54,13 @@ class K8sTestEnvironment:
     - Service discovery (front/back URLs)
     - Backend & frontend tests
     - Cleanup
+
     """
+
+    # Is this parameter or argument cluster_name="study-app-cluster", skip_cluster_creation=False
+    # --> These are parameters with default values for the __init__ method of the K8sTestEnvironment class.
+    # What is parameter: A parameter is a variable that is defined in the function or method signature.
+    # What are arguments: Arguments are the actual values that are passed to the function or method when it is called.
 
     def __init__(self, cluster_name="study-app-cluster", skip_cluster_creation=False):
         # kip_cluster_creation=False. means we will create and delete the cluster ourselves.
@@ -71,7 +80,6 @@ class K8sTestEnvironment:
         # then os.path.dirname to get its directory.
         # This is useful for locating related files (like k3d-config.yaml)
         # (__file__) gives the path of the current script.
-
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Project root directory (one level up from script)
@@ -110,11 +118,15 @@ class K8sTestEnvironment:
     # -------------------------------------------------------------------------
     # Infrastructure / environment utilities
     # -------------------------------------------------------------------------
-
+    # Why we need(self) here: The self parameter is used in instance methods to refer to the instance of the class itself.
     def check_kubectl_installed(self):
         """Ensure that 'kubectl' is installed and available in PATH."""
         # shutil.which("kubectl") shutil is a utility that checks if the given command is available in the system's PATH.
-        # is None means that if kubectl is not found, the function will return None.
+        # -->Is None means that if kubectl is not found, the function will return None.
+        # --> What is None: None is a special constant in Python that represents the absence of a value or a null value.
+        # None=null in java.
+        # is empty and none are same: No, they are not the same.
+        # --> None represents the absence of a value, while an empty value (like an empty string, list, or dictionary) is still a defined value, just without any content.
         if shutil.which("kubectl") is None:
             # kubectl not found; without it we cannot manage the cluster or resources
             logger.error(
@@ -141,7 +153,7 @@ class K8sTestEnvironment:
         # how to know: If a parameter has a default value (like True), it is optional. If it does not have a default value, it is required.
         # capture_output=False what is mean if false or true:
         # If capture_output is True, the method captures the standard output and standard error of the command and returns them in the CompletedProcess object.
-        # If capture_output is False, the command's output is not captured, and it will be printed directly to the console.
+        # If capture_output is False, the command's output is not captured, and it will be printed directly to the console. What is mean by directly to console: This means that the output of the command will be displayed in the terminal or command prompt where the script is running, rather than being captured and stored for later use.
 
         # shell=False how to check if shell is True or False: and where is shell come from:
         # The shell parameter determines whether to run the command through the shell (like bash) or directly.
@@ -166,8 +178,10 @@ class K8sTestEnvironment:
         # shell means the command is run through the shell (like bash),
         # allowing for shell features like pipes, redirection, etc.
         # If False, we split the command into a list of arguments.
+
         # For complex commands, we need shell=True.
         # For simple commands without shell features, we can use shell=False.
+
         # Explian below:
         # If shell is True, we pass the command string directly to subprocess.run.
         # If shell is False, we split the command string into a list of arguments using cmd.split().
@@ -175,6 +189,7 @@ class K8sTestEnvironment:
         # What is subproceass run: subprocess.run is a function that runs a command in a subprocess,
         # subprocess is a module for spawning new processes, connecting to their input/output/error pipes,
         # and obtaining their return codes.
+
         # pass the command string directly to subprocess.run. vs shell is False, we split the command string into a list of arguments using cmd.split().
         # # means that we break the command string into individual components based on spaces. why: This is necessary because subprocess.run expects a list of arguments when shell is False.
         # For example, the command "kubectl get pods" would be split into ["kubectl", "get", "pods"].
@@ -217,7 +232,9 @@ class K8sTestEnvironment:
                 cwd=cwd,
                 capture_output=capture_output,
             )
-
+        # What will be the result: The result will be a subprocess.CompletedProcess instance,
+        # what will be true or false: The result itself is not a boolean value.
+        # what will the the value of return result. example: The return value will be a subprocess.CompletedProcess object,
         return result
 
     def setup_cluster(self):
@@ -236,6 +253,7 @@ class K8sTestEnvironment:
             # return nothing means: This means that the function will exit at this point and not execute any further code within it.
             # is method return or if else: This is a return statement that exits the method early.
             # you can retrun in funcion any time you want: Yes, you can use a return statement at any point in a function or method to exit early.
+            # --> Why we need return here: In this context, the return statement is used to exit the setup_cluster method early if the skip_cluster_creation flag is set to True.
             return
 
         # ---------------------------------------------------------------------
@@ -246,10 +264,10 @@ class K8sTestEnvironment:
             "k3d cluster list",
             shell=True,  # `k3d cluster list` is a simple shell command
             # check=False means: This means that if the command exits with a non-zero status (indicating an error),
-            # which command fails: In this context, it refers to the "k3d cluster list" command.
+            # --> which command fails: In this context, it refers to the "k3d cluster list" command.
             # what is mean if check is False: If check is set to False, the run_command method will not raise an exception if the command fails (i.e., exits with a non-zero status).
             check=False,  # Do not raise if this fails
-            capture_output=True,  # We want to read stdout
+            capture_output=True,  # --> We want to read stdout of which command : "k3d cluster list"
         )
 
         # cluster_exists why not self: cluster_exists is a local variable defined within the setup_cluster method.
@@ -264,7 +282,7 @@ class K8sTestEnvironment:
             # Decode bytes -> string, then check if our cluster name appears
             # decode("utf-8") why use here and what it means explain:
             # The stdout attribute of the result object is typically in bytes format.
-            # To convert it to a human-readable string, we use the decode("utf-8") method.
+            # --> To convert it to a human-readable string, we use the decode("utf-8") method.
             cluster_exists = self.cluster_name in result.stdout.decode("utf-8")
 
         # If it exists, delete it to start from a clean state
@@ -278,7 +296,7 @@ class K8sTestEnvironment:
         # os.path.join why use os.path.join:
         # os.path.join is used to construct a file path that is compatible with the operating system.
         # It ensures that the correct path separators are used (e.g., "/" for Unix-like systems and "\" for Windows).
-        # This is important for cross-platform compatibility.
+        # --> This is important for cross-platform compatibility.
         config_path = os.path.join(self.base_dir, "k3d-config.yaml")
         self.run_command(f"k3d cluster create --config {config_path}")
 
@@ -353,6 +371,10 @@ class K8sTestEnvironment:
             return False
 
         # Split output into lines, each line is a service name
+        # .strip().split("\n") why use strip and split:
+        # .strip() is used to remove any leading or trailing whitespace (including newlines) from the output string.
+        # .split("\n") is then used to split the cleaned string into a list of lines,
+        # using the newline character as the delimiter.
         services = result.stdout.decode("utf-8").strip().split("\n")
 
         # Will hold the actual service names (no "service/" prefix)
