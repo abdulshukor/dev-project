@@ -216,6 +216,18 @@ class K8sTestEnvironment:
         # For example, commands with pipes or redirection would fail if shell is False.
         # Therefore, the if-else structure is necessary to ensure that commands are executed correctly based on the shell parameter.
         # where run come from: run is a function within the subprocess module.
+
+        # __subprocess defination__
+        # “From Python, run this shell command, send it input, capture its output, and check if it succeeded.”
+        # result will have object with a .returncode
+        # If check is True and the command exits with a non-zero status (which usually means “error”),
+        # Python will raise a subprocess.CalledProcessError.
+        # capture_output=True The child process’s stdout and stderr are captured into memory instead of being printed to the terminal.
+        # After it finishes, you can access:
+        # result.stdout → what the command printed to standard output
+        # result.stderr → what the command printed to standard error
+        # If you dont pass the The command’s output goes straight to the terminal, like if you ran it manually in the shell.
+        # result.stdout and result.stderr will be None.
         if shell:
             result = subprocess.run(
                 cmd,
@@ -235,6 +247,10 @@ class K8sTestEnvironment:
         # What will be the result: The result will be a subprocess.CompletedProcess instance,
         # what will be true or false: The result itself is not a boolean value.
         # what will the the value of return result. example: The return value will be a subprocess.CompletedProcess object,
+        # --> Default return of function is None in python.
+
+        # result = subprocess.run(...) will be a subprocess.CompletedProcess object.
+        # It’s a small object that summarizes what happened when the command ran.
         return result
 
     def setup_cluster(self):
@@ -365,9 +381,13 @@ class K8sTestEnvironment:
 
         # result.returncode != 0:
         # The returncode attribute of the result object indicates the exit status of the command that was run.
+        # whuch command: In this context, it refers to the "kubectl get svc -n study-app -o name" command.
+        # returncode != 0: where come from. The returncode is set by the subprocess.run function when it executes a command.
         if result.returncode != 0:
             # If kubectl call fails, we can't find services
             logger.error("Failed to get services from namespace")
+            # return False will do and will exit the function: This means that the function will exit at this point and return the value False to the caller.
+            # and will not execute any further code within it.
             return False
 
         # Split output into lines, each line is a service name
@@ -375,6 +395,17 @@ class K8sTestEnvironment:
         # .strip() is used to remove any leading or trailing whitespace (including newlines) from the output string.
         # .split("\n") is then used to split the cleaned string into a list of lines,
         # using the newline character as the delimiter.
+        # EXAMPLE
+        # text = "  hello\nworld\n\n  "
+        # Two spaces before hello
+        # A newline (\n) between hello and world
+        # .strip() — cleans the edges only
+        # cleaned = text.strip()
+        # "hello\nworld"
+        # split("\n") — cuts into pieces at newline characters
+        # cleaned = "hello\nworld"
+        # lines = cleaned.split("\n")
+        # ["hello", "world"]
         services = result.stdout.decode("utf-8").strip().split("\n")
 
         # Will hold the actual service names (no "service/" prefix)
@@ -399,6 +430,10 @@ class K8sTestEnvironment:
                 backend_svc_name = svc_name
                 logger.info(f"Detected backend service: {backend_svc_name}")
 
+        # not frontend_svc_name or not backend_svc_name what is mean:
+        # This condition checks if either frontend_svc_name or backend_svc_name is None or an empty string.
+        # --> If either variable is not set (meaning the corresponding service was not found),  the condition evaluates to True.
+        # Why we need this check: This check is important to ensure that both the frontend and backend services were successfully identified.
         if not frontend_svc_name or not backend_svc_name:
             logger.error("Could not find frontend and backend services")
             return False
@@ -416,9 +451,14 @@ class K8sTestEnvironment:
                 check=False,
                 capture_output=True,
             )
+            # how go get the ip from the below command:
+            # The command kubectl get svc -n study-app {frontend_svc_name} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' retrieves the external IP address of the LoadBalancer service for the frontend.
             frontend_ip = (
                 result.stdout.decode("utf-8").strip()
+                # This Comes form above command that getting the ip address.
+                # if result.returncode == 0 then what is after the if: If the command succeeded (return code 0), we extract the IP address.
                 if result.returncode == 0
+                # else None means: If the command failed (non-zero return code), we set frontend_ip to None.
                 else None
             )
 
@@ -448,6 +488,7 @@ class K8sTestEnvironment:
             frontend_port = (
                 result.stdout.decode("utf-8").strip()
                 if result.returncode == 0
+                # else "22111" means: If the command failed (non-zero return code), we set frontend_port to "22111".
                 else "22111"
             )
 
@@ -514,6 +555,10 @@ class K8sTestEnvironment:
 
         return True
 
+        # where url valvue come from and from where it passed:
+        # The url parameter is passed to the wait_for_service_availability method when it is called.
+        # where it used : used in the main test flow after deployment to wait for the backend and frontend services to become reachable.
+
     def wait_for_service_availability(self, url, max_retries=20, delay=5):
         """
         Poll the given URL until the service responds (HTTP < 500) or we run out of retries.
@@ -545,6 +590,10 @@ class K8sTestEnvironment:
             time.sleep(delay)
 
         logger.error(f"Service at {url} is not available after {max_retries} attempts")
+        # Why I need rerutn false if i done have it and remove it then what will happen:
+        # If we remove the return False statement, the function would not return any value when the service does not become reachable after the maximum number of retries
+        # --> In Python, if a function does not explicitly return a value, it implicitly returns None.
+        # This could lead to confusion for the caller of the function, as they would not be able to distinguish between a service that became reachable (True) and one that did not (None).
         return False
 
     # -------------------------------------------------------------------------
@@ -818,6 +867,7 @@ class K8sTestEnvironment:
         - If we created the cluster (skip_cluster_creation == False), delete the whole cluster.
         - If we reused an existing cluster, only delete the `study-app` namespace.
         """
+        # If false(not false) = true then execute below code.
         if not self.skip_cluster_creation:
             logger.info("Cleaning up: deleting k3d cluster")
             # Don't raise on failure during cleanup
