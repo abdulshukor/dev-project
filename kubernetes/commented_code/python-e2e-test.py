@@ -59,8 +59,8 @@ class K8sTestEnvironment:
 
     # Is this parameter or argument cluster_name="study-app-cluster", skip_cluster_creation=False
     # --> These are parameters with default values for the __init__ method of the K8sTestEnvironment class.
-    # What is parameter: A parameter is a variable that is defined in the function or method signature.
-    # What are arguments: Arguments are the actual values that are passed to the function or method when it is called.
+    # --> What is parameter: A parameter is a variable that is defined in the function or method signature.
+    # --> What are arguments: Arguments are the actual values that are passed to the function or method when it is called.
 
     def __init__(self, cluster_name="study-app-cluster", skip_cluster_creation=False):
         # kip_cluster_creation=False. means we will create and delete the cluster ourselves.
