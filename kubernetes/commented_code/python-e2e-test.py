@@ -153,7 +153,8 @@ class K8sTestEnvironment:
         # how to know: If a parameter has a default value (like True), it is optional. If it does not have a default value, it is required.
         # capture_output=False what is mean if false or true:
         # If capture_output is True, the method captures the standard output and standard error of the command and returns them in the CompletedProcess object.
-        # If capture_output is False, the command's output is not captured, and it will be printed directly to the console. What is mean by directly to console: This means that the output of the command will be displayed in the terminal or command prompt where the script is running, rather than being captured and stored for later use.
+        # If capture_output is False, the command's output is not captured, and it will be printed directly to the console. What is mean by directly to console:
+        # This means that the output of the command will be displayed in the terminal or command prompt where the script is running, rather than being captured and stored for later use.
 
         # shell=False how to check if shell is True or False: and where is shell come from:
         # The shell parameter determines whether to run the command through the shell (like bash) or directly.
@@ -868,6 +869,9 @@ class K8sTestEnvironment:
         - If we reused an existing cluster, only delete the `study-app` namespace.
         """
         # If false(not false) = true then execute below code.
+        # That means: by default, we do not skip creating the cluster → the code is expected to create a k3d cluster.
+        # The if not self.skip_cluster_creation line. This condition is True when self.skip_cluster_creation is False.
+        # not self.skip_cluster_creation is not False → True
         if not self.skip_cluster_creation:
             logger.info("Cleaning up: deleting k3d cluster")
             # Don't raise on failure during cleanup
@@ -903,6 +907,7 @@ class K8sTestEnvironment:
             self.setup_cluster()
             self.build_and_load_images()
 
+            # If self.deploy_application() fails then not fail = true then will trigger this.
             if not self.deploy_application():
                 # If deployment fails, we can't proceed with tests
                 logger.error("Failed to deploy application")
@@ -933,13 +938,14 @@ class K8sTestEnvironment:
             # Only clean up if:
             # - Tests succeeded AND cleanup_on_success is True
             # OR
-            # - Tests failed AND cleanup_on_failure is True
+            # - Tests failed AND cleanup_on_failure is True - cleanup_on_failure=True
             if (success and cleanup_on_success) or (not success and cleanup_on_failure):
                 self.cleanup()
 
 
 # -----------------------------------------------------------------------------
 # CLI entrypoint
+# ---> python script.py --help
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
     # Setup CLI argument parser with helpful description
@@ -962,11 +968,15 @@ if __name__ == "__main__":
     #  action="store_true" -  If the user includes the flag → the value becomes True
     # If the user does NOT include the flag → the value becomes False
     # So args.skip_cluster_creation will always be a boolean (True or False).
+    # Examples:
+    # python script.py. → args.skip_cluster_creation is False (we will create the cluster).
+    # python script.py --skip-cluster-creation. args.skip_cluster_creation is True (we will NOT create a new cluster; we’ll use an existing one).
 
     parser.add_argument(
         "--skip-cluster-creation",
         action="store_true",
-        # default="study-app-cluster",
+        # if you pass --skip-cluster-creation → args.skip_cluster_creation == True. If you don’t pass it → args.skip_cluster_creation == False
+        # we can have -> default="study-app-cluster",
         # what is help mean here: This text explains to the user what the flag does when they run the script with --help.
         help="Skip creating a new cluster (use an existing one instead)",
     )
@@ -1019,6 +1029,7 @@ if __name__ == "__main__":
     # - cleanup_on_failure remains False (keep resources on failure for debugging)
     # where run come from : run is a method defined in the K8sTestEnvironment class.
     # You call it on the test_env instance you just created.
+    # If user does not pass --no-cleanup:args.no_cleanup == False. not args.no_cleanup == True
     success = test_env.run(cleanup_on_success=not args.no_cleanup)
 
     # Exit code 0 = success, 1 = failure (important for CI/CD pipelines)
