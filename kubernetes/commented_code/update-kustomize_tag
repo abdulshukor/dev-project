@@ -27,11 +27,14 @@ if [ "$#" -ne 3 ]; then
   # $0 is a special variable that holds the name of the script being executed.
   echo "Usage: $0 <input-tag> <kustomization-file-path> <image-name>"
   exit 1   # Exit with error code 1.
+
+  #--------
   # Why exit 1 if I already have set -e at the top?
   # Because set -e only causes the script to exit on command failures,
   # not on argument count checks. We need to explicitly exit here.
   # This ensures the script stops if the user doesn't provide the correct number of arguments.
   # This is important to avoid running the script with missing or incorrect parameters.
+  #_________
   
 fi
 
