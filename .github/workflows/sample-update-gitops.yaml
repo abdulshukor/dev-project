@@ -35,7 +35,7 @@ jobs:
       - name: Checkout Actions Repo
         uses: actions/checkout@v4 # Standard GitHub Action to check out a repo
         with:
-          path: actions-repo # Check it out into ./actions-repo on the runner
+          path: actions-repo # Check it out into ./actions-repo on the runner. The repo we are in. 
 
       # ---------------------------------------------------------
       # 2. Check out the GitOps repository we want to modify
