@@ -274,6 +274,8 @@ echo -e "${YELLOW}k3d cluster delete $CLUSTER_NAME${NC}"
 # The -r prevents backslash escapes from being interpreted (y/n).
 #   if [[ $REPLY =~ ^[Yy]$ ]]; then
 # The double brackets [[ ... ]] is a more powerful test command in Bash.
+Because [[ ... ]] is Bash’s extended conditional syntax.
+the double brackets are used because =~ is a Bash regex operator, and it works inside [[ ... ]], not the older [ ... ] form.
 # The =~ operator allows regex matching.
 # ^[Yy]$ means the input is exactly one character: either Y or y
 # return vs exit
