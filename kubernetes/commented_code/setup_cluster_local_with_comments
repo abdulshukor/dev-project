@@ -27,6 +27,9 @@ CLUSTER_NAME="study-app-cluster"
 # Intro / banner
 # -------------------------------------------------------------------
 
+# echo — For simple text output.
+# echo -e — For quick Bash scripts involving newlines, tabs, or colors.
+
 echo -e "${GREEN}DevOps Study App - Kubernetes Deployment Helper${NC}"
 echo -e "${YELLOW}This script will set up a k3d cluster and deploy the study app.${NC}"
 echo ""
